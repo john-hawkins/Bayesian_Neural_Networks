@@ -12,4 +12,19 @@ and variations on the MCMC sampling procedure.
 The [RUN.sh Script](Run.sh) gives examples of how to execute several network architectures on a
 range of datasets.
 
+This script will execute the python command line program [train_bn_mcmc.py](train_bn_mcmc.py)
+Which should be executed as follows
+
+```
+python train_bn_mcmc.py <INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <TRAIN> <TEST> <RESULTS>
+```
+
+It expects to be given a training and testing data set, and it expects the data to be a CSV file
+in which the first  <INPUT NODES> number of columns are the numerical input features for the model.
+And the final <OUTPUT NODES> number of columns contain the target values.
+
+If the  <DEPTH> is 0 then it will be a standard FFNN with only a single layer of hidden neural. 
+Higher depth values add additional hidden layers
+
+TODO: make this parameter a more intuitive direct description of the network architecture. 
 
