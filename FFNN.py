@@ -2,27 +2,20 @@ import numpy as np
 import random
 import time
 import math
+from NeuralNetwork import NeuralNetwork
 
 #-------------------------------------------------------------------------------
-# DEFINE A NEURAL NETWORK CLASS
-# WITH THE ARCHITECTURE WE REQUIRE
-# AND METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
+# A STANDARD FEED FORWARD NEURAL NETWORK CLASS
+# WITH THE METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
 #-------------------------------------------------------------------------------
-class NeuralNetwork:
+class FFNN(NeuralNetwork):
+
     def __init__(self, input, hidden, output, output_act):
-        self.input = input
         self.hidden = hidden
-        self.output = output
+        NeuralNetwork.__init__(self, input, output, output_act) 
 
-        if output_act=="sigmoid":
-           self.output_act = self.sigmoid
-        elif output_act=="tanh":
-           self.output_act = self.tanh
-        else :
-           self.output_act = self.identity
+        self.initialise_cache()
 
-        np.random.seed()
- 
         self.W1 = np.random.randn(self.input, self.hidden) / np.sqrt(self.input)
         self.B1 = np.random.randn(1, self.hidden) / np.sqrt(self.hidden)  # bias first layer
         self.W2 = np.random.randn(self.hidden, self.output) / np.sqrt(self.hidden)
@@ -37,37 +30,10 @@ class NeuralNetwork:
     # PRINT THE ARCHITECTURE
     ######################################################################
     def print(self):
-        print("Bayesian Neural Network")
+        print("Bayesian FEED FORWARD Neural Network")
         print("Input Nodes:", self.input)
-        #print("Weights")
-        #for i in range(self.input):
-        #   temp = "Input " + str(i+1)
-        #   for h in range(self.hidden):
-        #       temp = temp + "[" + str(round(self.W1[i][h],3)) + "]"
-        #   print(temp) 
         print("Hidden Nodes:", self.hidden)
         print("Output Nodes:", self.output)
-
-
-    ######################################################################
-    # LOCAL DEFINITION OF THE SIGMOID FUNCTION FOR CONVENIENCE
-    ######################################################################
-    def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
-
-    ######################################################################
-    # LOCAL DEFINITION OF THE TANH FUNCTION FOR CONVENIENCE
-    ######################################################################
-    def tanh(self, x):
-        ex = np.exp(x)
-        eminx = np.exp(-x)
-        return (ex - eminx)/(ex + eminx)
-
-    ######################################################################
-    # IDENTITY FUNCTION FOR CONSISTENCY
-    ######################################################################
-    def sigmoid(self, x):
-        return x 
 
 
     ######################################################################
@@ -148,13 +114,6 @@ class NeuralNetwork:
 
 
     ######################################################################
-    # RMSE - Root Mean Squared Error
-    ######################################################################
-    def rmse(self, predictions, targets):
-        return np.sqrt(((predictions - targets) ** 2).mean())
-
-
-    ######################################################################
     # LOG LIKELIHOOD
     # CALCULATED GIVEN 
     # - A PROPOSED SET OF WEIGHTS
@@ -172,13 +131,14 @@ class NeuralNetwork:
     ######################################################################
     # LOG PRIOR
     ######################################################################
-    def log_prior(self, sigma_squared, nu_1, nu_2, w, tausq):
+    def log_prior(self, w, tausq):
         h = self.hidden  # number hidden neurons
         d = self.output  # number input neurons
-        part1 = -1 * ((d * h + h + 2) / 2) * np.log(sigma_squared)
-        part2 = 1 / (2 * sigma_squared) * (sum(np.square(w)))
-        logp = part1 - part2 - (1 + nu_1) * np.log(tausq) - (nu_2 / tausq)
+        part1 = -1 * ((d * h + h + 2) / 2) * np.log(self.sigma_squared)
+        part2 = 1 / (2 * self.sigma_squared) * (sum(np.square(w)))
+        logp = part1 - part2 - (1 + self.nu_1) * np.log(tausq) - (self.nu_2 / tausq)
         return logp
+
 
     ######################################################################
     # GET THE COMPLETE LENGTH OF THE ENCODED WEIGHT VECTOR
@@ -196,11 +156,37 @@ class NeuralNetwork:
 
 
     ######################################################################
+    # GET NEW PROPOSAL WEIGHT VECTOR BY MODIFYING AN EXISTING ONE
+    ######################################################################
+    def get_proposal_weight_vector(self, w):
+        w_proposal = w + np.random.normal(0, self.step_w, self.w_size)
+
+
+    ######################################################################
+    # GET THE TAU VALUE FOR ERROR DISTRIBUTION 
+    ######################################################################
+    def get_tau(self, eta):
+        eta_pro = eta + np.random.normal(0, step_eta, 1)
+        tau_pro = math.exp(eta_pro)
+        return tau_pro
+
+
+    ######################################################################
+    # ACCEPTANCE PROBABILITY - METROPOLIS HASTINGS
+    ######################################################################
+    def get_acceptance_probability(self, new_weights, old_weights, new_tau, old_tau, data, ):
+        new_key = self.get_cache_key(new_weights)
+        old_key = self.get_cache_key(old_weights)
+        #new_log_likelihood = 
+        #old_log_likelihood = 
+        w_proposal = w + np.random.normal(0, self.step_w, self.w_size)
+
+
+    ######################################################################
     # GET THE WEIGHT VECTOR
     ######################################################################
     def get_weight_vector(self):
         mytemp = [get_weight_vector_length()]
-        # TODO
         return mytemp
 
 

@@ -6,7 +6,7 @@ import random
 import time
 import sys
 import os
-import BN as bn
+import FFNN as ffnn
 import MCMC as mcmc
 import DeepFFNN as deepffnn
 
@@ -20,9 +20,10 @@ import DeepFFNN as deepffnn
 # - PATH TO TRAINING DATA
 # - PATH TO TESTING DATA
 # - PATH TO RESULTS
+# - SEED (OPTIONAL)
 #################################################################################
 def main():
-    if len(sys.argv) < 7:
+    if len(sys.argv) < 8:
         print("ERROR: MISSING ARGUMENTS")
         print_usage(sys.argv)
         exit(1)
@@ -34,13 +35,19 @@ def main():
         train_path = sys.argv[5]
         test_path = sys.argv[6]
         results_path = sys.argv[7]
+        if len(sys.argv) > 8:
+            rand_seed = sys.argv[8]
+        else:
+            rand_seed = 0
+        np.random.seed(rand_seed)
+
         train_model(input, hidden, output, depth, train_path, test_path, results_path)
         #test_model(input, hidden, output, depth, train_path, test_path, results_path)
 
 #################################################################################
 def print_usage(args):
     print("USAGE ")
-    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <TRAIN> <TEST> <RESULTS>")
+    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <TRAIN> <TEST> <RESULTS DIR> (<SEED>)")
     print("NOTE")
     print("THE NUMBER OF COLUMNS IN THE TRAIN AND TEST DATA MUST BE EQUAL TO INPUT PLUS OUTPUT NODES.")
 
@@ -52,8 +59,7 @@ def test_model(input, hidden, output, depth, train_path, test_path, results_path
 
     traindata = np.loadtxt(train_path)
     testdata = np.loadtxt(test_path)
-    #neuralnet = bn.NeuralNetwork(input, hidden, output, depth, output_act='sigmoid')
-    neuralnet = bn.NeuralNetwork(input, hidden, output, output_act='sigmoid')
+    neuralnet = ffnn.FFNN(input, hidden, output, output_act='sigmoid')
     neuralnet.print() 
     testsize = testdata.shape[0]
     y_test = testdata[:, neuralnet.input]
@@ -89,20 +95,20 @@ def train_model(input, hidden, output, depth, train_path, test_path, results_pat
     if depth>0:
         neuralnet = deepffnn.DeepFFNN(input, hidden, output, depth, output_act='sigmoid')
     else:
-        neuralnet = bn.NeuralNetwork(input, hidden, output, output_act='sigmoid')
+        neuralnet = ffnn.FFNN(input, hidden, output, output_act='sigmoid')
     neuralnet.print()
 
     random.seed( time.time() )
-    numSamples = 500000  
+    numSamples = 50000  
     estimator = mcmc.MCMC(numSamples, traindata, testdata, neuralnet, results_path)  
     estimator.print()
     [pos_w, pos_tau, fx_train, fx_test, x_train, x_test, rmse_train, rmse_test, accept_ratio] = estimator.sampler()
 
     print("\nTraining complete")
 
-    burnin = 10000
+    burnin = 1000
     # PREVIOUSLY: 0.1 * numSamples  
-    usesamples = 100000
+    usesamples = 10000
 
     burn_x = []
     burn_y = []

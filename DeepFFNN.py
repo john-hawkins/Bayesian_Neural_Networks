@@ -2,27 +2,23 @@ import numpy as np
 import random
 import time
 import math
+from NeuralNetwork import NeuralNetwork
 
 #-------------------------------------------------------------------------------
 # DEFINE A DEEP NEURAL NETWORK CLASS
 # WITH THE ARCHITECTURE WE REQUIRE
 # AND METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
 #-------------------------------------------------------------------------------
-class DeepFFNN:
+class DeepFFNN(NeuralNetwork):
+
     def __init__(self, input, hidden, output, max_depth, output_act):
-        self.input = input
+
+        NeuralNetwork.__init__(self, input, output, output_act)
+
         self.hidden = hidden
-        self.output = output
         self.max_depth = max_depth
 
-        if output_act=="sigmoid":
-           self.output_act = self.sigmoid
-        elif output_act=="tanh":
-           self.output_act = self.tanh
-        else :
-           self.output_act = self.identity
-
-        np.random.seed()
+        self.initialise_cache()
 
         # WEIGHTS FROM INPUT TO FIRST HIDDEN LAYER 
         self.W1 = np.random.randn(self.input, self.hidden) / np.sqrt(self.input)
@@ -55,26 +51,6 @@ class DeepFFNN:
         print("Hidden Layers:", self.max_depth)
         print("Output Nodes:", self.output)
 
-
-    ######################################################################
-    # LOCAL DEFINITION OF THE SIGMOID FUNCTION FOR CONVENIENCE
-    ######################################################################
-    def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
-
-    ######################################################################
-    # LOCAL DEFINITION OF THE TANH FUNCTION FOR CONVENIENCE
-    ######################################################################
-    def tanh(self, x):
-        ex = np.exp(x)
-        eminx = np.exp(-x)
-        return (ex - eminx)/(ex + eminx)
-
-    ######################################################################
-    # IDENTITY FUNCTION FOR CONSISTENCY
-    ######################################################################
-    def sigmoid(self, x):
-        return x 
 
 
     ######################################################################
@@ -156,13 +132,6 @@ class DeepFFNN:
 
 
     ######################################################################
-    # RMSE - Root Mean Squared Error
-    ######################################################################
-    def rmse(self, predictions, targets):
-        return np.sqrt(((predictions - targets) ** 2).mean())
-
-
-    ######################################################################
     # LOG LIKELIHOOD
     # CALCULATED GIVEN 
     # - A PROPOSED SET OF WEIGHTS
@@ -180,14 +149,15 @@ class DeepFFNN:
     ######################################################################
     # LOG PRIOR
     ######################################################################
-    def log_prior(self, sigma_squared, nu_1, nu_2, w, tausq):
+    def log_prior(self, w, tausq):
         h = self.hidden  # number hidden neurons in each layer.
         tot_h = h * (self.max_depth+1)
         d = self.output  # number input neurons
-        part1 = -1 * ((d * tot_h + tot_h + 2) / 2) * np.log(sigma_squared)
-        part2 = 1 / (2 * sigma_squared) * (sum(np.square(w)))
-        logp = part1 - part2 - (1 + nu_1) * np.log(tausq) - (nu_2 / tausq)
+        part1 = -1 * ((d * tot_h + tot_h + 2) / 2) * np.log(self.sigma_squared)
+        part2 = 1 / (2 * self.sigma_squared) * (sum(np.square(w)))
+        logp = part1 - part2 - (1 + self.nu_1) * np.log(tausq) - (self.nu_2 / tausq)
         return logp
+
 
     ######################################################################
     # GET THE COMPLETE LENGTH OF THE ENCODED WEIGHT VECTOR

@@ -165,17 +165,6 @@ class MCMC:
         eta = np.log(np.var(pred_train - y_train))
         tau_pro = np.exp(eta)
 
-	# THESE VALUES CONTROL THE INVERSE GAMMA FUNCTION
-	# WHICH IS WHAT WE ASSUME TAU SQUARED IS DRAWN FROM
-	# THIS IS CHOSEN FOR PROPERTIES THAT COMPLIMENT WITH THE GAUSSIAN LIKELIHOOD FUNCTION
-	# IS THERE A REFERENCE FOR THIS?
-        nu_1 = 0
-        nu_2 = 0
-
-	# SIGMA SQUARED IS THE ASSUMED VARIANCE OF THE PRIOR DISTRIBUTION 
-	# OF ALL WEIGHTS AND BIASES IN THE NEURAL NETWORK
-        sigma_squared = 25
-
 	#----------------------------------------------------------------------------------------
 	# THIS NEXT SECTION INVOLVES CALCULATING: Metropolis-Hastings Acceptance Probability
 	# This is what will determine whether a given change to the model weights (a proposal) 
@@ -188,7 +177,7 @@ class MCMC:
 	#----------------------------------------------------------------------------------------
 
 	# PRIOR PROBABILITY OF THE WEIGHTING SCHEME W
-        prior_current = self.neuralnet.log_prior(sigma_squared, nu_1, nu_2, w, tau_pro)
+        prior_current = self.neuralnet.log_prior(w, tau_pro)
 
         # LIKELIHOOD OF THE TRAINING DATA GIVEN THE PARAMETERS
         [likelihood, pred_train, rmsetrain] = self.neuralnet.log_likelihood(self.traindata, w, tau_pro)
@@ -220,7 +209,7 @@ class MCMC:
             [l_ignore, pred_test, rmsetest] = self.neuralnet.log_likelihood(self.testdata, w_proposal, tau_pro)
             # l_ignore  refers to parameter that will not be used in the alg.
 
-            prior_prop = self.neuralnet.log_prior(sigma_squared, nu_1, nu_2, w_proposal, tau_pro)
+            prior_prop = self.neuralnet.log_prior( w_proposal, tau_pro)
 
             diff_likelihood = likelihood_train - likelihood
             diff_prior = prior_prop - prior_current
