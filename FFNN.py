@@ -11,8 +11,11 @@ from NeuralNetwork import NeuralNetwork
 class FFNN(NeuralNetwork):
 
     def __init__(self, input, hidden, output, output_act):
+
         self.hidden = hidden
         NeuralNetwork.__init__(self, input, output, output_act) 
+
+        self.w_size = self.get_weight_vector_length()
 
         self.initialise_cache()
 
@@ -40,12 +43,80 @@ class FFNN(NeuralNetwork):
     # PASS DATA X THROUGH THE NETWORK TO PRODUCE AN OUTPUT
     ######################################################################
     def forward_pass(self, X):
+        #print("Shape: " + str(X.shape) + "\n")
+        #print("Type: " + str(type(X)) + "\n")
         z1 = X.dot(self.W1) - self.B1
-        self.hidout = self.sigmoid(z1)  # output of first hidden layer
+        self.hidout = self.relu(z1)  # output of first hidden layer
         z2 = self.hidout.dot(self.W2) - self.B2
-        self.out = self.sigmoid(z2)
+        self.out = self.activation(z2)
         self.final_out = self.out
         return self.final_out
+
+    ######################################################################
+    # BATCH UPDATE FUNCTIONS FOR STOCHASTIC GRADIENT DESCENT
+    # WE STORE THE WEIGHT AND BIAS UPDATES UNTIL THE BATCH IS FINISHED
+    # THEN APPLY THEM
+    ######################################################################
+    def reset_batch_update(self):
+        self.W2_batch_update = self.W2.copy()
+        self.B2_batch_update = self.B2.copy()
+        self.W1_batch_update = self.W1.copy()
+        self.B1_batch_update = self.B1.copy()
+
+    def apply_batch_update(self):
+        self.W2 = self.W2_batch_update
+        self.B2 = self.B2_batch_update
+        self.W1 = self.W1_batch_update
+        self.B1 = self.B1_batch_update
+
+    ######################################################################
+    # RUN THE ERROR BACK THROUGH THE NETWORK TO CALCULATE THE CHANGES TO
+    # ALL PARAMETERS.
+    # NOTE - THIS IS CALLED AFTER THE forward_pass
+    #      - YOU NEED TO RUN reset_batch_update BEFORE STARTING THE BATCH
+    ######################################################################
+    def BackwardPass(self, Input, desired):
+        out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
+        hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
+
+        for x in xrange(0, self.hidden):
+            for y in xrange(0, self.output):
+                self.W2_batch_update[x, y] += self.lrate * out_delta[y] * self.hidout[x]
+        for y in xrange(0, self.Top[layer + 1]):
+            self.B2_batch_update[y] += -1 * self.lrate * out_delta[y]
+
+        for x in xrange(0, self.input):
+            for y in xrange(0, self.hidden):
+                self.W1_batch_update[x, y] += self.lrate * hid_delta[y] * Input[x]
+        for y in xrange(0, self.Top[layer + 1]):
+            self.B1_batch_update[y] += -1 * self.lrate * hid_delta[y]
+
+    ######################################################################
+    # GNERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT
+    # BackPropagation with SGD
+    ######################################################################
+    def get_proposal_weight_vector_langevin(self, data, w, depth):  
+        
+        self.decode(w)  # method to decode w into W1, W2, B1, B2.
+        size = data.shape[0]
+        self.reset_batch_update()
+
+        Input = np.zeros((1, self.Top[0]))  # temp hold input
+        Desired = np.zeros((1, self.Top[2]))
+        fx = np.zeros(size)
+
+        for i in xrange(0, depth):
+            for j in xrange(0, size):
+                pat = j
+                Input = data[pat, 0:self.Top[0]]
+                Desired = data[pat, self.Top[0]:]
+                self.ForwardPass(Input)
+                self.BackwardPass(Input, Desired)
+        self.apply_batch_update()
+        w_updated = self.encode()
+
+        return  w_updated
+
 
     ######################################################################
     # TAKE A SINGLE VECTOR OF FLOATING POINT NUMBERS AND USE IT TO 
@@ -54,8 +125,6 @@ class FFNN(NeuralNetwork):
     def decode(self, w):
         input_layer_wts = self.input * self.hidden
         output_layer_wts = self.hidden * self.output
-        boost_layer_wts = self.hidden * self.hidden
-        #print(input_layer_wts, output_layer_wts, boost_layer_wts)
 
         start_index = 0
         w_layer1 = w[start_index:input_layer_wts]
@@ -72,6 +141,14 @@ class FFNN(NeuralNetwork):
         self.B2 = w[start_index:start_index + self.output]
         start_index = start_index + self.output
 
+    ######################################################################
+    # ENCODE THE WEIGHTS AND BIASES INTO A SINGLE VECTOR 
+    ######################################################################
+    def encode(self):
+        w1 = self.W1.ravel()
+        w2 = self.W2.ravel()
+        w = np.concatenate([w1, self.B1, w2, self.B2])
+        return w
 
     ######################################################################
     # PROCESS DATA
@@ -98,20 +175,10 @@ class FFNN(NeuralNetwork):
     ######################################################################
     def evaluate_proposal(self, data, w): 
         self.decode(w)  
-        return self.process_data(data)
-
-    def tempholder():
-        size = data.shape[0]
-        Input = np.zeros((1, self.input))  # temp hold input
-        Desired = np.zeros((1, self.output))
-        results = []
-        for pat in range(0, size):
-            Input[:] = data[pat, 0:self.input]
-            Desired[:] = data[pat, self.input:]
-            self.forward_pass(Input)
-            results.append(self.out)
-        return results
-
+        fx = self.process_data(data)
+        y = data[:, self.input]
+        rmse = self.rmse(fx, y)
+        return [fx, rmse]
 
     ######################################################################
     # LOG LIKELIHOOD
@@ -122,10 +189,9 @@ class FFNN(NeuralNetwork):
     ######################################################################
     def log_likelihood(self, data, w, tausq):
         y = data[:, self.input]
-        fx = self.evaluate_proposal(data, w)
-        rmse = self.rmse(fx, y)
+        [fx, rmse] = self.evaluate_proposal(data, w)
         loss = -0.5 * np.log(2 * math.pi * tausq) - 0.5 * np.square(y - fx) / tausq
-        return [np.sum(loss), fx, rmse]
+        return np.sum(loss)
 
 
     ######################################################################
@@ -133,7 +199,7 @@ class FFNN(NeuralNetwork):
     ######################################################################
     def log_prior(self, w, tausq):
         h = self.hidden  # number hidden neurons
-        d = self.output  # number input neurons
+        d = self.input  # number input neurons
         part1 = -1 * ((d * h + h + 2) / 2) * np.log(self.sigma_squared)
         part2 = 1 / (2 * self.sigma_squared) * (sum(np.square(w)))
         logp = part1 - part2 - (1 + self.nu_1) * np.log(tausq) - (self.nu_2 / tausq)
@@ -160,27 +226,22 @@ class FFNN(NeuralNetwork):
     ######################################################################
     def get_proposal_weight_vector(self, w):
         w_proposal = w + np.random.normal(0, self.step_w, self.w_size)
-
+        return w_proposal
 
     ######################################################################
-    # GET THE TAU VALUE FOR ERROR DISTRIBUTION 
+    # GET PROPOSAL TAU VALUE FOR ERROR DISTRIBUTION 
     ######################################################################
-    def get_tau(self, eta):
-        eta_pro = eta + np.random.normal(0, step_eta, 1)
+    def get_proposal_tau(self, eta):
+        eta_pro = eta + np.random.normal(0, self.step_eta, 1)
         tau_pro = math.exp(eta_pro)
-        return tau_pro
+        return [eta_pro, tau_pro]
 
 
     ######################################################################
     # ACCEPTANCE PROBABILITY - METROPOLIS HASTINGS
     ######################################################################
-    def get_acceptance_probability(self, new_weights, old_weights, new_tau, old_tau, data, ):
-        new_key = self.get_cache_key(new_weights)
-        old_key = self.get_cache_key(old_weights)
-        #new_log_likelihood = 
-        #old_log_likelihood = 
-        w_proposal = w + np.random.normal(0, self.step_w, self.w_size)
-
+    def get_acceptance_probability(self, new_w, new_tausq, old_w, old_tausq, data ):
+        return self.calculate_metropolis_hastings_acceptance_probability(new_w, new_tausq, old_w, old_tausq, data)
 
     ######################################################################
     # GET THE WEIGHT VECTOR

@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import datetime
 import time
 import math
 import os
 
 #-------------------------------------------------------------------------------
 # DEFINE A MARKOV CHAIN MONTE CARLO CLASS
-# SPECIFIC FOR THE NEURAL NETWORK CLASS WE HAVE DEFINED
+# SPECIFIC FOR THE NEURAL NETWORK CLASS HIERARCHY 
 #-------------------------------------------------------------------------------
 class MCMC:
     def __init__(self, samples, traindata, testdata, neuralnetwork, resultsdir):
@@ -92,12 +93,27 @@ class MCMC:
 
 
     ########################################################################################
+    # LOGGING UTILITIES
+    ########################################################################################
+    def start_log_file(self):
+        self.logfile = self.resultsdir + "log.txt"
+        self.outlog = open(self.logfile, 'w')
+
+    def write_log_entry(self, iteration, message):
+        st = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        self.outlog.write(st + "\t" + str(iteration) + "\t" + message + "\r\n")
+        self.outlog.flush()
+
+    def close_log(self):
+        self.outlog.close()
+
+    ########################################################################################
     # RUN THE MCMC SAMPLER
     ########################################################################################
     def sampler(self):
+        self.start_log_file()
         self.printProgressBar(0, self.samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
-        logfile = self.resultsdir + "log.txt"
-        outlog = open(logfile, 'w')
+        self.write_log_entry(0, "Initialising...")
 
         # How may training and test points? 
         # shape[0] Returns the first dimension of the array
@@ -116,11 +132,11 @@ class MCMC:
         # Copy the y values into an independent vector
         y_test = self.testdata[:, self.neuralnet.input]
         y_train = self.traindata[:, self.neuralnet.input]
-        outlog.write("Training data size:" + str(y_train.size) )
-        outlog.write("Testing data size:" + str(y_test.size) )
+
+        self.write_log_entry(0, "Training data size:" + str(y_train.size) )
+        self.write_log_entry(0, "Testing data size:" + str(y_test.size) )
 
         # The total number of parameters for the neural network
-        # is the number of weights and bias
         w_size = self.neuralnet.get_weight_vector_length()
 
 	# Posterior distribution of all weights and bias over all samples
@@ -148,47 +164,21 @@ class MCMC:
         w = np.random.randn(w_size)
         w_proposal = np.random.randn(w_size)
 
-	# THESE PARAMETERS CONTROL THE RANDOM WALK
-	# THE FIRST THE CHANGES TO THE NETWORK WEIGHTS
-        step_w = 0.02;  
-	# THE SECOND THE VARIATION IN THE NOISE DISTRIBUTION
-        step_eta = 0.01;
-
-	# PASS THE DATA THROUGH THE NETWORK AND GET THE OUTPUTS ON BOTH TRAIN AND TEST
-        pred_train = self.neuralnet.evaluate_proposal(self.traindata, w)
-        pred_test = self.neuralnet.evaluate_proposal(self.testdata, w)
+        [pred_train, rmsetrain] = self.neuralnet.evaluate_proposal(self.traindata, w)
+        [pred_test, rmsetest] = self.neuralnet.evaluate_proposal(self.testdata, w)
 
 	# INITIAL VALUE OF TAU IS BASED ON THE ERROR OF THE INITIAL NETWORK ON TRAINING DATA
 	# ETA - IS USED FOR DOING THE RANDOM WALK SO THAT WE CAN ADD OR SUBTRACT RANDOM VALUES
 	#       SUPPORT OVER [-INF, INF]
 	# IT WILL BE EXPONENTIATED TO GET tau_squared of the proposal WITH SUPPORT OVER [0, INF] 
         eta = np.log(np.var(pred_train - y_train))
-        tau_pro = np.exp(eta)
+        tausq = np.exp(eta)
 
-	#----------------------------------------------------------------------------------------
-	# THIS NEXT SECTION INVOLVES CALCULATING: Metropolis-Hastings Acceptance Probability
-	# This is what will determine whether a given change to the model weights (a proposal) 
-	# is accepted or rejected
-	# This will consist of the following
-	# 1) A ratio of the likelihoods (current and proposal)
-	# 2) A ratio of the priors (current and proposal)
-	# 3) The inverse ratio of the transition probabilities. 
-	# (Ommitted in this case because transitions are symetric)
-	#----------------------------------------------------------------------------------------
+        likelihood = self.neuralnet.get_log_likelihood(self.traindata, w, tausq)
 
-	# PRIOR PROBABILITY OF THE WEIGHTING SCHEME W
-        prior_current = self.neuralnet.log_prior(w, tau_pro)
-
-        # LIKELIHOOD OF THE TRAINING DATA GIVEN THE PARAMETERS
-        [likelihood, pred_train, rmsetrain] = self.neuralnet.log_likelihood(self.traindata, w, tau_pro)
-
-        # CALCULATED ON THE TEST SET FOR LOGGING AND OBSERVATION
-        [likelihood_ignore, pred_test, rmsetest] = self.neuralnet.log_likelihood(self.testdata, w, tau_pro)
-
-        outlog.write('Likelihood: ' + str(likelihood) )
-
+        self.write_log_entry(0, 'Likelihood: ' + str(likelihood) )
         naccept = 0
-        outlog.write('begin sampling using mcmc random walk')
+        self.write_log_entry(0, 'Begin sampling using MCMC random walk')
         plt.plot(x_train, y_train)
         plt.plot(x_train, pred_train)
         plt.title("Plot of Data vs Initial Fx")
@@ -200,40 +190,24 @@ class MCMC:
 
         for i in range(samples - 1):
             self.printProgressBar(i + 1, samples, prefix = 'Progress:', suffix = 'Complete', length = 50)
-            w_proposal = w + np.random.normal(0, step_w, w_size)
-
-            eta_pro = eta + np.random.normal(0, step_eta, 1)
-            tau_pro = math.exp(eta_pro)
-
-            [likelihood_train, pred_train, rmsetrain] = self.neuralnet.log_likelihood(self.traindata, w_proposal, tau_pro)
-            [l_ignore, pred_test, rmsetest] = self.neuralnet.log_likelihood(self.testdata, w_proposal, tau_pro)
-            # l_ignore  refers to parameter that will not be used in the alg.
-
-            prior_prop = self.neuralnet.log_prior( w_proposal, tau_pro)
-
-            diff_likelihood = likelihood_train - likelihood
-            diff_prior = prior_prop - prior_current
-            logproduct = diff_likelihood + diff_prior
-            if logproduct > 709:
-                logproduct = 709
-            difference = math.exp(logproduct)
-            mh_prob = min(1, difference) 
+ 
+            #w_proposal = self.neuralnet.get_proposal_weight_vector(w)
+            #[eta_pro, tau_pro] = self.neuralnet.get_proposal_tau(eta)
+            #[pred_train, rmsetrain] = self.neuralnet.evaluate_proposal(self.traindata, w_proposal)
+            #[pred_test, rmsetest] = self.neuralnet.evaluate_proposal(self.testdata, w_proposal) 
+            #mh_prob = self.neuralnet.get_acceptance_probability(w_proposal, tau_pro, w, tausq, self.traindata)
+  
+            [w_proposal, eta_pro, tau_pro, pred_train, rmsetrain, pred_test, rmsetest, mh_prob] = self.neuralnet.get_proposal_and_acceptance_probability(w, eta, tausq, self.traindata, self.testdata)
 
             u = random.uniform(0, 1)
 
             if u < mh_prob:
                 # Update position
-                outlog.write( str(i) + ' accepted sample' + "\r\n")
+                self.write_log_entry(i, "Proposal Accepted" + "\tTrain RMSE " + str(rmsetrain) + "\tTest RMSE:" + str(rmsetest))
                 naccept += 1
-                likelihood = likelihood_train
-                prior_current = prior_prop
                 w = w_proposal
                 eta = eta_pro
-
-                outlog.write("Prior:" + str(prior_current) + "\r\n")
-                outlog.write("Likelihood:" + str(likelihood) + "\r\n")
-                outlog.write("Train RMSE:" + str(rmsetrain) + "\r\n")
-                outlog.write("Test RMSE:" + str(rmsetest) + "\r\n")
+                tausq = tau_pro
 
                 pos_w[i + 1,] = w_proposal
                 pos_tau[i + 1,] = tau_pro
@@ -251,12 +225,12 @@ class MCMC:
                 fxtest_samples[i + 1,] = fxtest_samples[i,]
                 rmse_train[i + 1,] = rmse_train[i,]
                 rmse_test[i + 1,] = rmse_test[i,]
-                outlog.write( str(i) + 'proposal rejected' + "\r\n")
+                self.write_log_entry( i,  "Proposal Rejected")
 
-        outlog.write(str(naccept) + ' Accepted Samples')
-        outlog.write("Acceptance Rate:" + str(100 * naccept/(samples * 1.0)) + '%')
+        self.write_log_entry(samples, str(naccept) + ' Accepted Samples')
+        self.write_log_entry(samples, "Acceptance Rate:" + str(100 * naccept/(samples * 1.0)) + '%')
         accept_ratio = naccept / (samples * 1.0)
-        outlog.close()
+        self.close_log()
 
         plt.title("Plot of Accepted Proposals")
         plotpath = self.resultsdir + 'proposals.png'

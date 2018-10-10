@@ -6,9 +6,11 @@ import random
 import time
 import sys
 import os
+import SLP as slp
 import FFNN as ffnn
 import MCMC as mcmc
 import DeepFFNN as deepffnn
+import DeepGBFFNN as deepgbffnn
 
 #################################################################################
 # TRAIN A BAYESIAN NEURAL NETWORK 
@@ -23,7 +25,7 @@ import DeepFFNN as deepffnn
 # - SEED (OPTIONAL)
 #################################################################################
 def main():
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 9:
         print("ERROR: MISSING ARGUMENTS")
         print_usage(sys.argv)
         exit(1)
@@ -32,22 +34,24 @@ def main():
         hidden = int(sys.argv[2])
         output = int(sys.argv[3])
         depth = int(sys.argv[4])
-        train_path = sys.argv[5]
-        test_path = sys.argv[6]
-        results_path = sys.argv[7]
-        if len(sys.argv) > 8:
-            rand_seed = sys.argv[8]
+        architecture = sys.argv[5]
+        activation = sys.argv[6]
+        train_path = sys.argv[7]
+        test_path = sys.argv[8]
+        results_path = sys.argv[9]
+        if len(sys.argv) > 10:
+            rand_seed = sys.argv[10]
         else:
             rand_seed = 0
         np.random.seed(rand_seed)
 
-        train_model(input, hidden, output, depth, train_path, test_path, results_path)
-        #test_model(input, hidden, output, depth, train_path, test_path, results_path)
+        train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path)
 
 #################################################################################
 def print_usage(args):
     print("USAGE ")
-    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <TRAIN> <TEST> <RESULTS DIR> (<SEED>)")
+    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <ARCH> <ACTIVATION> <TRAIN> <TEST> <RESULTS DIR> (<SEED>)")
+    print("Valid output activation functions: linear sigmoid tanh relu")
     print("NOTE")
     print("THE NUMBER OF COLUMNS IN THE TRAIN AND TEST DATA MUST BE EQUAL TO INPUT PLUS OUTPUT NODES.")
 
@@ -85,17 +89,22 @@ def ensure_resultsdir(resultsdir):
 #################################################################################
 # TRAIN THE MODELS
 #################################################################################
-def train_model(input, hidden, output, depth, train_path, test_path, results_path):
+def train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path):
     ensure_resultsdir(results_path)
     rezfile = results_path + "results.txt"
     outres = open(rezfile, 'w')
     traindata = np.loadtxt(train_path)
     testdata = np.loadtxt(test_path)
 
-    if depth>0:
-        neuralnet = deepffnn.DeepFFNN(input, hidden, output, depth, output_act='sigmoid')
+    if architecture == 'DeepGBFFNN':
+        neuralnet = deepgbffnn.DeepGBFFNN(input, hidden, output, depth, 0.01, output_act=activation)
+    elif architecture == 'DeepFFNN':
+        neuralnet = deepffnn.DeepFFNN(input, hidden, output, depth, output_act=activation)
+    elif architecture == 'SLP':
+        neuralnet = slp.SLP(input, output, output_act=activation)
     else:
-        neuralnet = ffnn.FFNN(input, hidden, output, output_act='sigmoid')
+        neuralnet = ffnn.FFNN(input, hidden, output, output_act=activation)
+
     neuralnet.print()
 
     random.seed( time.time() )

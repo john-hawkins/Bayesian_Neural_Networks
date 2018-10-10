@@ -5,40 +5,31 @@ import math
 from NeuralNetwork import NeuralNetwork
 
 #-------------------------------------------------------------------------------
-# DEFINE A DEEP NEURAL NETWORK CLASS
-# WITH THE ARCHITECTURE WE REQUIRE
-# AND METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
+# A STANDARD FEED FORWARD NEURAL NETWORK CLASS
+# WITH THE METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
 #-------------------------------------------------------------------------------
-class DeepFFNN(NeuralNetwork):
+class LangevinFFNN(NeuralNetwork):
 
-    def __init__(self, input, hidden, output, max_depth, output_act):
+    def __init__(self, input, hidden, output, output_act):
 
         self.hidden = hidden
-        self.max_depth = max_depth
-        NeuralNetwork.__init__(self, input, output, output_act)
+        self.sgd_runs = 1
+        NeuralNetwork.__init__(self, input, output, output_act) 
 
         self.w_size = self.get_weight_vector_length()
+        # for Equation 9 in Ref [Chandra_ICONIP2017]
+        self.sigma_diagmat = np.zeros((self.w_size, self.w_size))  
+        np.fill_diagonal(self.sigma_diagmat, self.step_w)
 
         self.initialise_cache()
 
-        # WEIGHTS FROM INPUT TO FIRST HIDDEN LAYER 
         self.W1 = np.random.randn(self.input, self.hidden) / np.sqrt(self.input)
-        self.B1 = np.random.randn(1, self.hidden) / np.sqrt(self.hidden)
-
-        # WEIGHTS FROM LAST HIDDEN LAYER TO OUTPUT LAYER  
+        self.B1 = np.random.randn(1, self.hidden) / np.sqrt(self.hidden)  # bias first layer
         self.W2 = np.random.randn(self.hidden, self.output) / np.sqrt(self.hidden)
-        self.B2 = np.random.randn(1, self.output) / np.sqrt(self.hidden)  
+        self.B2 = np.random.randn(1, self.output) / np.sqrt(self.hidden)  # bias second layer
 
+        self.hidout = np.zeros((1, self.hidden))  # output of first hidden layer
         self.out = np.zeros((1, self.output))  # output layer for base model
-
-        # NOW LETS CREATE ALL OF THE HIDDEN LAYERS
-        self.h_weights = []
-        self.h_biases = []
-        self.h_out = []
-        for layer in range(self.max_depth):
-            self.h_weights.append(np.random.randn(self.hidden, self.hidden) / np.sqrt(self.hidden))
-            self.h_biases.append(np.random.randn(1, self.hidden) / np.sqrt(self.hidden)  )
-            self.h_out.append(np.zeros((1, self.hidden)) )
 
         self.final_out = np.zeros((1, self.output))  # Final output for the model
 
@@ -46,31 +37,101 @@ class DeepFFNN(NeuralNetwork):
     # PRINT THE ARCHITECTURE
     ######################################################################
     def print(self):
-        print("Bayesian Deep Feed Forward Neural Network")
+        print("Bayesian Langevin FEED FORWARD Neural Network")
         print("Input Nodes:", self.input)
         print("Hidden Nodes:", self.hidden)
-        print("Hidden Layers:", self.max_depth)
         print("Output Nodes:", self.output)
-
 
 
     ######################################################################
     # PASS DATA X THROUGH THE NETWORK TO PRODUCE AN OUTPUT
     ######################################################################
     def forward_pass(self, X):
-        # INPUT LAYER FIRST
         z1 = X.dot(self.W1) - self.B1
-        # OUTPUT OF THE FIRST HIDDEN NODES
-        tempout = self.sigmoid(z1)  
-        # NOW THE ADDITIONAL HIDDEN LAYERS
-        for layer in range(self.max_depth):
-            tempz1 = tempout.dot(self.h_weights[layer]) - self.h_biases[layer]
-            tempout = self.sigmoid(tempz1)
-            self.h_out[layer] = tempout
-        z2 = tempout.dot(self.W2) - self.B2
+        self.hidout = self.sigmoid(z1)  # output of first hidden layer
+        z2 = self.hidout.dot(self.W2) - self.B2
         self.out = self.sigmoid(z2)
         self.final_out = self.out
         return self.final_out
+
+    ######################################################################
+    # BATCH UPDATE FUNCTIONS FOR STOCHASTIC GRADIENT DESCENT
+    # WE STORE THE WEIGHT AND BIAS UPDATES UNTIL THE BATCH IS FINISHED
+    # THEN APPLY THEM
+    ######################################################################
+    def reset_batch_update(self):
+        self.W2_batch_update = self.W2.copy()
+        self.B2_batch_update = self.B2.copy()
+        self.W1_batch_update = self.W1.copy()
+        self.B1_batch_update = self.B1.copy()
+
+    def apply_batch_update(self):
+        self.W2 = self.W2_batch_update
+        self.B2 = self.B2_batch_update
+        self.W1 = self.W1_batch_update
+        self.B1 = self.B1_batch_update
+
+    ######################################################################
+    # RUN THE ERROR BACK THROUGH THE NETWORK TO CALCULATE THE CHANGES TO
+    # ALL PARAMETERS.
+    # NOTE - THIS IS CALLED AFTER THE forward_pass
+    #      - YOU NEED TO RUN reset_batch_update BEFORE STARTING THE BATCH
+    ######################################################################
+    def BackwardPass(self, Input, desired):
+        out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
+        hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
+
+        for x in xrange(0, self.hidden):
+            for y in xrange(0, self.output):
+                self.W2_batch_update[x, y] += self.lrate * out_delta[y] * self.hidout[x]
+        for y in xrange(0, self.Top[layer + 1]):
+            self.B2_batch_update[y] += -1 * self.lrate * out_delta[y]
+
+        for x in xrange(0, self.input):
+            for y in xrange(0, self.hidden):
+                self.W1_batch_update[x, y] += self.lrate * hid_delta[y] * Input[x]
+        for y in xrange(0, self.Top[layer + 1]):
+            self.B1_batch_update[y] += -1 * self.lrate * hid_delta[y]
+
+
+    ######################################################################
+    # UPDATE WEIGHT VECTOR USING GRADIENT DESCENT
+    # BackPropagation with SGD
+    ######################################################################
+    def langevin_gradient_update(self, data, w):  
+        
+        self.decode(w)  # method to decode w into W1, W2, B1, B2.
+        size = data.shape[0]
+        self.reset_batch_update()
+
+        Input = np.zeros((1, self.input))  # temp hold input
+        Desired = np.zeros((1, self.output))
+        fx = np.zeros(size)
+
+        for i in xrange(0, self.sgd_runs):
+            for j in xrange(0, size):
+                pat = j
+                Input = data[pat, 0:self.input]
+                Desired = data[pat, self.input:]
+                self.ForwardPass(Input)
+                self.BackwardPass(Input, Desired)
+        self.apply_batch_update()
+        w_updated = self.encode()
+
+        return  w_updated
+
+    ######################################################################
+    # GENERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT PLUS NOISE
+    ######################################################################
+    def get_proposal_weight_vector(self, data, w):
+            w_gd = self.langevin_gradient_update(data, w)
+            w_proposal = w_gd  + np.random.normal(0, self.step_w, self.w_size) 
+            return w_proposal
+
+            w_prop_gd = neuralnet.langevin_gradient(self.traindata, w_proposal.copy(), self.sgd_depth)
+
+            diff_prop =  np.log(multivariate_normal.pdf(w, w_prop_gd, sigma_diagmat)  - np.log(multivariate_normal.pdf(w_proposal, w_gd, sigma_diagmat)))
+
 
     ######################################################################
     # TAKE A SINGLE VECTOR OF FLOATING POINT NUMBERS AND USE IT TO 
@@ -79,7 +140,6 @@ class DeepFFNN(NeuralNetwork):
     def decode(self, w):
         input_layer_wts = self.input * self.hidden
         output_layer_wts = self.hidden * self.output
-        internal_layer_wts = self.hidden * self.hidden
 
         start_index = 0
         w_layer1 = w[start_index:input_layer_wts]
@@ -96,14 +156,14 @@ class DeepFFNN(NeuralNetwork):
         self.B2 = w[start_index:start_index + self.output]
         start_index = start_index + self.output
 
-        # ALL OF THE ADDITIONAL HIDDEN LAYER WEIGHTS AT THE END OF THE VECTOR 
-        for layer in range(self.max_depth):
-            w_layer_temp = w[start_index: start_index + internal_layer_wts]
-            self.h_weights[layer] = np.reshape(w_layer_temp, (self.hidden, self.hidden))
-            start_index = start_index + internal_layer_wts
-            self.h_biases[layer] = w[start_index:start_index + self.hidden]
-            start_index = start_index + self.hidden
-
+    ######################################################################
+    # ENCODE THE WEIGHTS AND BIASES INTO A SINGLE VECTOR 
+    ######################################################################
+    def encode(self):
+        w1 = self.W1.ravel()
+        w2 = self.W2.ravel()
+        w = np.concatenate([w1, self.B1, w2, self.B2])
+        return w
 
     ######################################################################
     # PROCESS DATA
@@ -123,24 +183,23 @@ class DeepFFNN(NeuralNetwork):
 
 
     ######################################################################
-    # EVALUATE PROPOSAL
+    # EVALUATE PROPOSAL 
     # THIS METHOD NEEDS TO SET THE WEIGHT PARAMETERS
-    # THEN PASS THE SET OF DATA THROUGH THE NETWORK AND
-    # FINALLY CALCULATING THE RMSE
+    # THEN PASS THE SET OF DATA THROUGH, COLLECTING THE OUTPUT FROM EACH
+    # OF THE BOOSTED LAYERS, AND THE FINAL OUTPUT
     ######################################################################
-    def evaluate_proposal(self, data, w):
-        self.decode(w)
+    def evaluate_proposal(self, data, w): 
+        self.decode(w)  
         fx = self.process_data(data)
         y = data[:, self.input]
         rmse = self.rmse(fx, y)
         return [fx, rmse]
 
-
     ######################################################################
     # LOG LIKELIHOOD
-    # CALCULATED GIVEN
+    # CALCULATED GIVEN 
     # - A PROPOSED SET OF WEIGHTS
-    # - A DATA SET
+    # - A DATA SET 
     # - AND THE PARAMETERS FOR THE ERROR DISTRIBUTION
     ######################################################################
     def log_likelihood(self, data, w, tausq):
@@ -154,10 +213,9 @@ class DeepFFNN(NeuralNetwork):
     # LOG PRIOR
     ######################################################################
     def log_prior(self, w, tausq):
-        h = self.hidden  # number hidden neurons in each layer.
-        tot_h = h * (self.max_depth+1)
+        h = self.hidden  # number hidden neurons
         d = self.input  # number input neurons
-        part1 = -1 * ((d * tot_h + tot_h + 2) / 2) * np.log(self.sigma_squared)
+        part1 = -1 * ((d * h + h + 2) / 2) * np.log(self.sigma_squared)
         part2 = 1 / (2 * self.sigma_squared) * (sum(np.square(w)))
         logp = part1 - part2 - (1 + self.nu_1) * np.log(tausq) - (self.nu_2 / tausq)
         return logp
@@ -170,26 +228,17 @@ class DeepFFNN(NeuralNetwork):
         start_index = 0
         input_layer_wts = self.input * self.hidden
         output_layer_wts = self.hidden * self.output
-        internal_layer_wts = self.hidden * self.hidden
+        boost_layer_wts = self.hidden * self.hidden
         start_index = start_index + input_layer_wts
         start_index = start_index + self.hidden
         start_index = start_index + output_layer_wts
         start_index = start_index + self.output
-        for layer in range(self.max_depth):
-            start_index = start_index + internal_layer_wts
-            start_index = start_index + self.hidden
         return start_index
 
 
-    ######################################################################
-    # GET NEW PROPOSAL WEIGHT VECTOR BY MODIFYING AN EXISTING ONE
-    ######################################################################
-    def get_proposal_weight_vector(self, w):
-        w_proposal = w + np.random.normal(0, self.step_w, self.w_size)
-        return w_proposal
 
     ######################################################################
-    # GET PROPOSAL TAU VALUE FOR ERROR DISTRIBUTION
+    # GET PROPOSAL TAU VALUE FOR ERROR DISTRIBUTION 
     ######################################################################
     def get_proposal_tau(self, eta):
         eta_pro = eta + np.random.normal(0, self.step_eta, 1)
@@ -201,14 +250,13 @@ class DeepFFNN(NeuralNetwork):
     # ACCEPTANCE PROBABILITY - METROPOLIS HASTINGS
     ######################################################################
     def get_acceptance_probability(self, new_w, new_tausq, old_w, old_tausq, data ):
-        return self.calculate_metropolis_hastings_acceptance_probability(new_w, new_tausq, old_w, old_tausq, data)
+        return self.calculate_langevin_metropolis_hastings_acceptance_probability(new_w, new_tausq, old_w, old_tausq, data)
 
     ######################################################################
     # GET THE WEIGHT VECTOR
     ######################################################################
     def get_weight_vector(self):
         mytemp = [get_weight_vector_length()]
-        # TODO
         return mytemp
 
 

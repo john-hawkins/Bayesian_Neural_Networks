@@ -16,20 +16,31 @@ This script will execute the python command line program [train_bn_mcmc.py](trai
 Which should be executed as follows
 
 ```
-python train_bn_mcmc.py <INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <TRAIN> <TEST> <RESULTS> (OPTIONAL:<RANDOM SEED>)
+python train_bn_mcmc.py <INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <MODEL> <OUTPUT ACTIVATION> <TRAIN> <TEST> <RESULTS> (OPTIONAL:<RANDOM SEED>)
 ```
 
 It expects to be given a training and testing data set, and it expects the data to be a CSV file
 in which the first  <INPUT NODES> number of columns are the numerical input features for the model.
 And the final <OUTPUT NODES> number of columns contain the target values.
 
-If the  <DEPTH> is 0 then it will be a standard FFNN with only a single layer of hidden neural. 
-Higher depth values add additional hidden layers
+The value of <MODEL> determines the overall network architecture, and <DEPTH> only applies if
+it is a deep neural network. The value of <OUTPUT ACTIVATION> determines what the activation function
+will be and you need to choose this depending on the distribution of your target value.
 
-TODO: make this parameter a more intuitive direct description of the network architecture. 
 
-CURRENT WORK: Extracting aspects of the metropolis hastings process that are specific to the
-neural network architecture and embedding them in the ML Model class. So that the MCMC process
-is general and abstract and we can run multiple architectures side-by-side.
+# TODO
+ 
+* The above method of describing the neural network structure is cumbersome and inflexible. I plan to make this driven 
+  by a single regular expression style syntax that describes the entire architecture.
+
+# CURRENT WORK 
+
+I am extracting aspects of the MCMC and Metropolis Hastings calculations that are specific to the
+neural network architecture and embedding them in the specific neural network classes. 
+
+This will make the overall MCMC class very abstract/general and I can then easily run multiple 
+architectures side-by-side for comparison.
+
+
 
 
