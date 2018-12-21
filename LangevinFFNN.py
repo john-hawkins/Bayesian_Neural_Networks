@@ -237,12 +237,6 @@ class LangevinFFNN(LangevinNeuralNetwork):
 
 
     ######################################################################
-    # ACCEPTANCE PROBABILITY - METROPOLIS HASTINGS
-    ######################################################################
-    def get_acceptance_probability(self, new_w, new_tausq, old_w, old_tausq, data ):
-        return self.calculate_langevin_metropolis_hastings_acceptance_probability(new_w, new_tausq, old_w, old_tausq, data)
-
-    ######################################################################
     # GET THE WEIGHT VECTOR
     ######################################################################
     def get_weight_vector(self):

@@ -16,6 +16,8 @@ python ./train_bn_mcmc.py 28 14 1 0 FFNN sigmoid data/HIGGS/train_small.csv data
 
 python ./train_bn_mcmc.py 28 7 1 5 DeepFFNN sigmoid data/HIGGS/train_small.csv data/HIGGS/test.csv  results/HIGGS_DeepFFNN/ AUC
 
+python ./train_bn_mcmc.py 28 7 1 5 LangevinFFNN sigmoid data/ACFinance/train.txt data/ACFinance/test.txt  results/ACFinance_LangevinFFNN/ MASE
+
 
 # BeiJing Air Quality 
 python ./train_bn_mcmc.py 13 0 1 0 SLP linear data/BeijingPM2.5/train_set_norm.csv data/BeijingPM2.5/test_set_norm.csv  results/BeijingPM2.5_SLP/ MASE

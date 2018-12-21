@@ -57,8 +57,8 @@ class LangevinNeuralNetwork(NeuralNetwork):
         # diff_prop =  np.log(multivariate_normal.pdf(old_w, w_prop_gd, self.sigma_diagmat)  - np.log(multivariate_normal.pdf(new_w, w_gd, sigma_diagmat)))
         ### UPDATE TO FIX NUMERICAL ISSUE
         wc_delta = (old_w - w_prop_gd)
-        wp_delta = (w_new - w_gd )
-        sigma_sq = sel.step_w
+        wp_delta = (new_w - w_gd )
+        sigma_sq = self.step_w
         first = -0.5 * np.sum(wc_delta  *  wc_delta  ) / sigma_sq  # this is wc_delta.T  *  wc_delta /sigma_sq
         second = -0.5 * np.sum(wp_delta * wp_delta ) / sigma_sq
         diff_prop =  first - second
@@ -107,7 +107,7 @@ class LangevinNeuralNetwork(NeuralNetwork):
             [eta_pro, tau_pro] = self.get_proposal_tau(eta)
             [pred_train, rmsetrain] = self.evaluate_proposal(traindata, w_proposal)
             [pred_test, rmsetest] = self.evaluate_proposal(testdata, w_proposal)
-            mh_prob = self.get_acceptance_probability(w_proposal, w_gd, tau_pro, w, tausq, traindata)
+            mh_prob = self.calculate_metropolis_hastings_acceptance_probability(w_proposal, w_gd, tau_pro, w, tausq, traindata)
             return [w_proposal, eta_pro, tau_pro, pred_train, rmsetrain, pred_test, rmsetest, mh_prob]
 
 
