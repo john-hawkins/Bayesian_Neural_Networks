@@ -2,19 +2,21 @@ import numpy as np
 import random
 import time
 import math
-from NeuralNetwork import NeuralNetwork
+from LangevinNeuralNetwork import LangevinNeuralNetwork
 
 #-------------------------------------------------------------------------------
-# A STANDARD FEED FORWARD NEURAL NETWORK CLASS
-# WITH THE METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
+# A Langevin Bayesian Neural Network 
+# 
+# Contains a rnage of methods that make a neural network learner amenable to
+# learning a set of weightings using a MCMC process with Langevin dynamics.
 #-------------------------------------------------------------------------------
-class LangevinFFNN(NeuralNetwork):
+class LangevinFFNN(LangevinNeuralNetwork):
 
-    def __init__(self, input, hidden, output, output_act):
+    def __init__(self, input, hidden, output, output_act, eval_metric):
 
         self.hidden = hidden
         self.sgd_runs = 1
-        NeuralNetwork.__init__(self, input, output, output_act) 
+        LangevinNeuralNetwork.__init__(self, input, output, output_act, eval_metric) 
 
         self.w_size = self.get_weight_vector_length()
         # for Equation 9 in Ref [Chandra_ICONIP2017]
@@ -77,25 +79,25 @@ class LangevinFFNN(NeuralNetwork):
     # NOTE - THIS IS CALLED AFTER THE forward_pass
     #      - YOU NEED TO RUN reset_batch_update BEFORE STARTING THE BATCH
     ######################################################################
-    def BackwardPass(self, Input, desired):
+    def backward_pass(self, Input, desired):
         out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
         hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
 
-        for x in xrange(0, self.hidden):
-            for y in xrange(0, self.output):
+        for x in range(0, self.hidden):
+            for y in range(0, self.output):
                 self.W2_batch_update[x, y] += self.lrate * out_delta[y] * self.hidout[x]
-        for y in xrange(0, self.Top[layer + 1]):
+        for y in range(0, self.output):
             self.B2_batch_update[y] += -1 * self.lrate * out_delta[y]
 
-        for x in xrange(0, self.input):
-            for y in xrange(0, self.hidden):
+        for x in range(0, self.input):
+            for y in range(0, self.hidden):
                 self.W1_batch_update[x, y] += self.lrate * hid_delta[y] * Input[x]
-        for y in xrange(0, self.Top[layer + 1]):
+        for y in range(0, self.hidden):
             self.B1_batch_update[y] += -1 * self.lrate * hid_delta[y]
 
 
     ######################################################################
-    # UPDATE WEIGHT VECTOR USING GRADIENT DESCENT
+    # RETURN AN UPDATED WEIGHT VECTOR USING GRADIENT DESCENT
     # BackPropagation with SGD
     ######################################################################
     def langevin_gradient_update(self, data, w):  
@@ -108,29 +110,17 @@ class LangevinFFNN(NeuralNetwork):
         Desired = np.zeros((1, self.output))
         fx = np.zeros(size)
 
-        for i in xrange(0, self.sgd_runs):
-            for j in xrange(0, size):
+        for i in range(0, self.sgd_runs):
+            for j in range(0, size):
                 pat = j
                 Input = data[pat, 0:self.input]
                 Desired = data[pat, self.input:]
-                self.ForwardPass(Input)
-                self.BackwardPass(Input, Desired)
+                self.forward_pass(Input)
+                self.backward_pass(Input, Desired)
         self.apply_batch_update()
         w_updated = self.encode()
 
         return  w_updated
-
-    ######################################################################
-    # GENERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT PLUS NOISE
-    ######################################################################
-    def get_proposal_weight_vector(self, data, w):
-            w_gd = self.langevin_gradient_update(data, w)
-            w_proposal = w_gd  + np.random.normal(0, self.step_w, self.w_size) 
-            return w_proposal
-
-            w_prop_gd = neuralnet.langevin_gradient(self.traindata, w_proposal.copy(), self.sgd_depth)
-
-            diff_prop =  np.log(multivariate_normal.pdf(w, w_prop_gd, sigma_diagmat)  - np.log(multivariate_normal.pdf(w_proposal, w_gd, sigma_diagmat)))
 
 
     ######################################################################

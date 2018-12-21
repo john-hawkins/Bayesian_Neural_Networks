@@ -11,7 +11,7 @@ class NeuralNetwork:
 
     # THESE PARAMETERS CONTROL THE RANDOM WALK
     # THE FIRST THE CHANGES TO THE NETWORK WEIGHTS
-    step_w = 0.05;
+    step_w = 0.01;
 
     # THE SECOND THE VARIATION IN THE NOISE DISTRIBUTION
     step_eta = 0.01;
@@ -30,9 +30,11 @@ class NeuralNetwork:
     ######################################################################
     # CONSTRUCTOR
     ######################################################################
-    def __init__(self, input, output, output_act):
+    def __init__(self, input, output, output_act, eval_metric):
         self.input = input
         self.output = output
+        self.output_act = output_act
+        self.eval_metric = eval_metric
 
         if output_act=="sigmoid":
            self.activation = self.sigmoid
@@ -42,6 +44,15 @@ class NeuralNetwork:
            self.activation = self.relu
         else :
            self.activation = self.linear
+
+        if eval_metric=="MAE":
+           self.eval = self.mae
+        elif eval_metric=="MAPE":
+           self.eval = self.mape
+        elif eval_metric=="MASE":
+           self.eval = self.mase
+        else :
+           self.eval = self.rmse
 
 
     ######################################################################
@@ -79,6 +90,69 @@ class NeuralNetwork:
     ######################################################################
     def rmse(self, predictions, targets):
         return np.sqrt(((predictions - targets) ** 2).mean())
+
+    ######################################################################
+    # Mean Absolute Error
+    ######################################################################
+    def mae(self, predictions, targets):
+        return (np.abs(predictions - targets)).mean()
+
+    ######################################################################
+    # Mean Absolute Percentage Error (with correction for zero target) 
+    ######################################################################
+    def mape(self, predictions, targets):
+        return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
+
+    ######################################################################
+    # AUC - Area Under the Curve (Binary Classification Only)
+    # TODO: Implement
+    ######################################################################
+    def auc(self, predictions, targets):
+        #joined = 
+        #sorted = 
+        return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
+
+    ######################################################################
+    # Mean Absolute Scaled Error - Version a (Time Series Only)
+    # This metric make strong assumption about the test data
+    # 1. That its order in the vector is the order in time
+    # 2. That the appropriate naive model is the last target value 
+    #    preceding the current row 
+    #    (in other words we are predicting one time step in advance)
+    # NOTE: Adding a small value to correct for instances when 
+    #       the base error is zero 
+    ######################################################################
+    def mase(self, predictions, targets):
+        naive_preds = targets[0:len(targets)-1]
+        final_targs = targets[1:len(targets)]
+        model_preds = predictions[1:len(predictions)]
+        base_error = np.abs(naive_preds - final_targs) + 0.0000001
+        model_error = np.abs(model_preds - final_targs)
+        return (model_error/base_error).mean()
+
+
+    ######################################################################
+    # Mean Absolute Scaled Error - Version b (Time Series Only)
+    # This metric make strong assumptions about the structure of the data
+    # 1. We assume that the last of the presented features is the the 
+    #    previous known value of the entity we are predicting. 
+    # 2. And that this last value is the appropriate Naive mode.
+    # NOTE: Adding a small value to correct for instances when
+    #       the base error is zero
+    #
+    # TODO: In order to use this we need to change all definitions and calls
+    #       of the eval function so that the features are also passed through
+    ############################################################################
+    def maseb(self, features, predictions, targets):
+        naive_preds = features[len(features),:]
+        final_targs = targets
+        model_preds = predictions
+        base_error = np.abs(naive_preds - final_targs) + 0.0000001
+        model_error = np.abs(model_preds - final_targs)
+        return (model_error/base_error).mean()
+
+
+
 
     ######################################################################
     # INITIALISE THE CACHES USED FOR STORING VALUES USED IN MCMC PROCESS

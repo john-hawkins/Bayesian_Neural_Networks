@@ -11,11 +11,11 @@ from NeuralNetwork import NeuralNetwork
 #-------------------------------------------------------------------------------
 class DeepFFNN(NeuralNetwork):
 
-    def __init__(self, input, hidden, output, max_depth, output_act):
+    def __init__(self, input, hidden, output, max_depth, output_act, eval_metric):
 
         self.hidden = hidden
         self.max_depth = max_depth
-        NeuralNetwork.__init__(self, input, output, output_act)
+        NeuralNetwork.__init__(self, input, output, output_act, eval_metric)
 
         self.w_size = self.get_weight_vector_length()
 

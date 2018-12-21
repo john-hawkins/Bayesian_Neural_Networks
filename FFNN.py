@@ -10,10 +10,10 @@ from NeuralNetwork import NeuralNetwork
 #-------------------------------------------------------------------------------
 class FFNN(NeuralNetwork):
 
-    def __init__(self, input, hidden, output, output_act):
+    def __init__(self, input, hidden, output, output_act, eval_metric):
 
         self.hidden = hidden
-        NeuralNetwork.__init__(self, input, output, output_act) 
+        NeuralNetwork.__init__(self, input, output, output_act, eval_metric) 
 
         self.w_size = self.get_weight_vector_length()
 
@@ -43,8 +43,6 @@ class FFNN(NeuralNetwork):
     # PASS DATA X THROUGH THE NETWORK TO PRODUCE AN OUTPUT
     ######################################################################
     def forward_pass(self, X):
-        #print("Shape: " + str(X.shape) + "\n")
-        #print("Type: " + str(type(X)) + "\n")
         z1 = X.dot(self.W1) - self.B1
         self.hidout = self.relu(z1)  # output of first hidden layer
         z2 = self.hidout.dot(self.W2) - self.B2
@@ -75,26 +73,28 @@ class FFNN(NeuralNetwork):
     # NOTE - THIS IS CALLED AFTER THE forward_pass
     #      - YOU NEED TO RUN reset_batch_update BEFORE STARTING THE BATCH
     ######################################################################
-    def BackwardPass(self, Input, desired):
+    def backward_pass(self, Input, desired):
         out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
         hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
 
-        for x in xrange(0, self.hidden):
-            for y in xrange(0, self.output):
+        for x in range(0, self.hidden):
+            for y in range(0, self.output):
                 self.W2_batch_update[x, y] += self.lrate * out_delta[y] * self.hidout[x]
-        for y in xrange(0, self.Top[layer + 1]):
+        for y in range(0, self.Top[layer + 1]):
             self.B2_batch_update[y] += -1 * self.lrate * out_delta[y]
 
-        for x in xrange(0, self.input):
-            for y in xrange(0, self.hidden):
+        for x in range(0, self.input):
+            for y in range(0, self.hidden):
                 self.W1_batch_update[x, y] += self.lrate * hid_delta[y] * Input[x]
-        for y in xrange(0, self.Top[layer + 1]):
+        for y in range(0, self.Top[layer + 1]):
             self.B1_batch_update[y] += -1 * self.lrate * hid_delta[y]
 
     ######################################################################
     # GNERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT
     # BackPropagation with SGD
-    ######################################################################
+    # 
+    # DEPRECATED -- LANGEVIN DYNAMICS IS EXTRACTED INTO A SEPARATE HIERARCHY
+    ###########################################################################
     def get_proposal_weight_vector_langevin(self, data, w, depth):  
         
         self.decode(w)  # method to decode w into W1, W2, B1, B2.
@@ -105,8 +105,8 @@ class FFNN(NeuralNetwork):
         Desired = np.zeros((1, self.Top[2]))
         fx = np.zeros(size)
 
-        for i in xrange(0, depth):
-            for j in xrange(0, size):
+        for i in range(0, depth):
+            for j in range(0, size):
                 pat = j
                 Input = data[pat, 0:self.Top[0]]
                 Desired = data[pat, self.Top[0]:]

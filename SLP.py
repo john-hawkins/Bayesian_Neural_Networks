@@ -5,14 +5,14 @@ import math
 from NeuralNetwork import NeuralNetwork
 
 #-------------------------------------------------------------------------------
-# A STANDARD FEED FORWARD NEURAL NETWORK CLASS
+# A STANDARD SINGLE LAYER PERCEPTRON 
 # WITH THE METHODS THAT MAKE IT AMENABLE TO BAYESIAN ML PROCESSES
 #-------------------------------------------------------------------------------
 class SLP(NeuralNetwork):
 
-    def __init__(self, input, output, output_act):
+    def __init__(self, input, output, output_act, eval_metric):
 
-        NeuralNetwork.__init__(self, input, output, output_act) 
+        NeuralNetwork.__init__(self, input, output, output_act, eval_metric) 
 
         self.w_size = self.get_weight_vector_length()
 
@@ -32,6 +32,8 @@ class SLP(NeuralNetwork):
         print("Bayesian Single Layer Perceptron")
         print("Input Nodes:", self.input)
         print("Output Nodes:", self.output)
+        print("Output Activation", self.output_act)
+        print("Eval Metric:", self.eval_metric)
 
 
     ######################################################################
@@ -95,8 +97,9 @@ class SLP(NeuralNetwork):
         self.decode(w)  
         fx = self.process_data(data)
         y = data[:, self.input]
-        rmse = self.rmse(fx, y)
-        return [fx, rmse]
+        #rmse = self.rmse(fx, y)
+        metric = self.eval(fx, y)
+        return [fx, metric]
 
     ######################################################################
     # LOG LIKELIHOOD
@@ -107,7 +110,7 @@ class SLP(NeuralNetwork):
     ######################################################################
     def log_likelihood(self, data, w, tausq):
         y = data[:, self.input]
-        [fx, rmse] = self.evaluate_proposal(data, w)
+        [fx, metric] = self.evaluate_proposal(data, w)
         loss = -0.5 * np.log(2 * math.pi * tausq) - 0.5 * np.square(y - fx) / tausq
         return np.sum(loss)
 

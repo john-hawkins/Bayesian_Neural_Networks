@@ -12,11 +12,15 @@ from NeuralNetwork import NeuralNetwork
 #-------------------------------------------------------------------------------
 class LangevinNeuralNetwork(NeuralNetwork):
 
+
+    # THESE PARAMETERS CONTROL THE GRADIENT DESCENT PROCESS
+    lrate = 0.01;
+
     ######################################################################
     # CONSTRUCTOR
     ######################################################################
-    def __init__(self, input, output, output_act):
-        NeuralNetwork.__init__(self, input, output, output_act)
+    def __init__(self, input, output, output_act, eval_metric):
+        NeuralNetwork.__init__(self, input, output, output_act, eval_metric)
 
 
     ######################################################################
@@ -41,10 +45,24 @@ class LangevinNeuralNetwork(NeuralNetwork):
     # 2) A ratio of the priors (current and proposal)
     # 3) The inverse ratio of the transition probabilities.
     ###########################################################################################################
-    def calculate_metropolis_hastings_acceptance_probability(self, new_w, new_tausq, old_w, old_tausq, data ):
+    def calculate_metropolis_hastings_acceptance_probability( self, new_w, w_gd, new_tausq, old_w, old_tausq, data ):
 
-        w_prop_gd = self.langevin_gradient(data, new_w.copy())
-        diff_prop =  np.log(multivariate_normal.pdf(old_w, w_prop_gd, self.sigma_diagmat)  - np.log(multivariate_normal.pdf(w_proposal, w_gd, sigma_diagmat)))
+        # WE FIRST NEED TO CALCULATE THE REVERSAL RATIO TO SATISFY DETAILED BALANCE
+        # 
+        # Calculate a weight vector derived using gradient descent from the proposal
+        w_prop_gd = self.langevin_gradient_update(data, new_w.copy())
+
+     
+        # THIS WAS THE VERSION USED IN THE SIMULATIONS FOR THE ORIGINAL PAPER
+        # diff_prop =  np.log(multivariate_normal.pdf(old_w, w_prop_gd, self.sigma_diagmat)  - np.log(multivariate_normal.pdf(new_w, w_gd, sigma_diagmat)))
+        ### UPDATE TO FIX NUMERICAL ISSUE
+        wc_delta = (old_w - w_prop_gd)
+        wp_delta = (w_new - w_gd )
+        sigma_sq = sel.step_w
+        first = -0.5 * np.sum(wc_delta  *  wc_delta  ) / sigma_sq  # this is wc_delta.T  *  wc_delta /sigma_sq
+        second = -0.5 * np.sum(wp_delta * wp_delta ) / sigma_sq
+        diff_prop =  first - second
+        ### END UPDATE
 
         new_log_prior = self.get_log_prior( new_w, new_tausq)
         new_log_likelihood = self.get_log_likelihood(data, new_w, new_tausq)
@@ -59,5 +77,37 @@ class LangevinNeuralNetwork(NeuralNetwork):
         mh_prob = min(1, difference)
         return mh_prob
 
+    ######################################################################
+    # GENERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT PLUS NOISE
+    ######################################################################
+    def get_proposal_weight_vector(self, data, w):
+            w_gd = self.langevin_gradient_update(data, w)
+            w_proposal = w_gd  + np.random.normal(0, self.step_w, self.w_size)
+            return w_proposal
+
+    ######################################################################
+    # GENERATE A PROPOSAL WEIGHT VECTOR USING GRADIENT DESCENT PLUS NOISE
+    # RETURN : Tuple with the proposal and the raw gradient descent derived 
+    #           weights
+    ######################################################################
+    def get_proposal_weight_vector_and_gradient(self, data, w):
+            w_gd = self.langevin_gradient_update(data, w)
+            w_proposal = w_gd  + np.random.normal(0, self.step_w, self.w_size)
+            return [w_proposal, w_gd]
+
+
+    ######################################################################
+    # CALCULATE EVERYTHING NEEDED FOR A SINGLE MCMC STEP
+    # - PROPOSAL, PREDS, ERROR AND ACCEPTANCE PROBABILITY
+    # We overwrite the definition in the Neural Network Base class because we need both the 
+    # proposal generation and acceptance probability to be aware of the error gradient of model.
+    ###########################################################################################################
+    def get_proposal_and_acceptance_probability(self, w, eta, tausq, traindata, testdata):
+            [w_proposal, w_gd] = self.get_proposal_weight_vector_and_gradient(traindata, w)
+            [eta_pro, tau_pro] = self.get_proposal_tau(eta)
+            [pred_train, rmsetrain] = self.evaluate_proposal(traindata, w_proposal)
+            [pred_test, rmsetest] = self.evaluate_proposal(testdata, w_proposal)
+            mh_prob = self.get_acceptance_probability(w_proposal, w_gd, tau_pro, w, tausq, traindata)
+            return [w_proposal, eta_pro, tau_pro, pred_train, rmsetrain, pred_test, rmsetest, mh_prob]
 
 
