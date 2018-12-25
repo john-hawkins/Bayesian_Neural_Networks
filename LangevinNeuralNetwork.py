@@ -14,7 +14,9 @@ class LangevinNeuralNetwork(NeuralNetwork):
 
 
     # THESE PARAMETERS CONTROL THE GRADIENT DESCENT PROCESS
-    lrate = 0.01;
+    lrate = 0.0001;
+
+    use_batch = False
 
     ######################################################################
     # CONSTRUCTOR

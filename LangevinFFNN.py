@@ -40,6 +40,8 @@ class LangevinFFNN(LangevinNeuralNetwork):
     ######################################################################
     def print(self):
         print("Bayesian Langevin FEED FORWARD Neural Network")
+        print("Batch Mode:", self.use_batch)
+        print("Learning Rate:", self.lrate)
         print("Input Nodes:", self.input)
         print("Hidden Nodes:", self.hidden)
         print("Output Nodes:", self.output)
@@ -73,13 +75,14 @@ class LangevinFFNN(LangevinNeuralNetwork):
         self.W1 = self.W1_batch_update
         self.B1 = self.B1_batch_update
 
-    ######################################################################
+    ########################################################################################
     # RUN THE ERROR BACK THROUGH THE NETWORK TO CALCULATE THE CHANGES TO
     # ALL PARAMETERS.
     # NOTE - THIS IS CALLED AFTER THE forward_pass
-    #      - YOU NEED TO RUN reset_batch_update BEFORE STARTING THE BATCH
-    ######################################################################
-    def backward_pass(self, Input, desired):
+    #      - YOU NEED TO CALL reset_batch_update() BEFORE STARTING THE BATCH
+    #      - YOU NEED TO CALL apply_batch_update() AFTER ALL DATA POINTS IN THE BATCH 
+    ########################################################################################
+    def backward_pass_batch(self, Input, desired):
         out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
         hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
 
@@ -95,32 +98,86 @@ class LangevinFFNN(LangevinNeuralNetwork):
         for y in range(0, self.hidden):
             self.B1_batch_update[y] += -1 * self.lrate * hid_delta[y]
 
+    ########################################################################################
+    # RUN THE ERROR BACK THROUGH THE NETWORK TO CALCULATE THE CHANGES TO ALL PARAMETERS.
+    ########################################################################################
+    def backward_pass(self, Input, desired):
+        out_delta = (desired - self.final_out) * (self.final_out * (1 - self.final_out))
+        hid_delta = out_delta.dot(self.W2.T) * (self.hidout * (1 - self.hidout))
+
+        for x in range(0, self.hidden):
+            for y in range(0, self.output):
+                self.W2[x, y] += self.lrate * out_delta[y] * self.hidout[x]
+        for y in range(0, self.output):
+            self.B2[y] += -1 * self.lrate * out_delta[y]
+
+        for x in range(0, self.input):
+            for y in range(0, self.hidden):
+                self.W1[x, y] += self.lrate * hid_delta[y] * Input[x]
+        for y in range(0, self.hidden):
+            self.B1[y] += -1 * self.lrate * hid_delta[y]
+
+
 
     ######################################################################
     # RETURN AN UPDATED WEIGHT VECTOR USING GRADIENT DESCENT
     # BackPropagation with SGD
     ######################################################################
     def langevin_gradient_update(self, data, w):  
-        
+        if self.use_batch:
+            return self.calculate_gradient_using_batch(data, w)
+        else :
+            return self.calculate_gradient_sgd(data, w)
+
+    ######################################################################
+    # BackPropagation with batch update
+    ######################################################################
+    def calculate_gradient_using_batch(self, data, w):
         self.decode(w)  # method to decode w into W1, W2, B1, B2.
         size = data.shape[0]
         self.reset_batch_update()
-
-        Input = np.zeros((1, self.input))  # temp hold input
+        
+        Input = np.zeros((1, self.input))  
         Desired = np.zeros((1, self.output))
         fx = np.zeros(size)
-
+            
         for i in range(0, self.sgd_runs):
             for j in range(0, size):
-                pat = j
+                pat = j 
                 Input = data[pat, 0:self.input]
                 Desired = data[pat, self.input:]
                 self.forward_pass(Input)
-                self.backward_pass(Input, Desired)
+                self.backward_pass_batch(Input, Desired)
         self.apply_batch_update()
         w_updated = self.encode()
 
         return  w_updated
+
+
+
+    ######################################################################
+    # BackPropagation with SGD
+    ######################################################################
+    def calculate_gradient_sgd(self, data, w):
+        self.decode(w)  # method to decode w into W1, W2, B1, B2.
+        size = data.shape[0]
+
+        Input = np.zeros((1, self.input))  
+        Desired = np.zeros((1, self.output))
+        fx = np.zeros(size)
+
+        for i in range(0, self.sgd_runs):
+            for i in range(0, size):
+                pat = i
+                Input = data[pat, 0:self.input]
+                Desired = data[pat, self.input:]
+                self.forward_pass(Input)
+                self.backward_pass(Input, Desired)
+
+        w_updated = self.encode()
+        return  w_updated
+
+
 
 
     ######################################################################

@@ -24,7 +24,16 @@ python ./train_bn_mcmc.py 13 0 1 0 SLP linear data/BeijingPM2.5/train_set_norm.c
 
 python ./train_bn_mcmc.py 13 7 1 0 FFNN linear data/BeijingPM2.5/train_set_norm.csv data/BeijingPM2.5/test_set_norm.csv  results/BeijingPM2.5_FFNN/ MASE
 
+python ./train_bn_mcmc.py 13 7 1 0 LangevinFFNN linear data/BeijingPM2.5/train_set_norm.csv data/BeijingPM2.5/test_set_norm.csv  results/BeijingPM2.5_LangevinFFNN/ MASE
+
 python ./train_bn_mcmc.py 13 7 1 5 DeepFFNN linear data/BeijingPM2.5/train_set_norm.csv data/BeijingPM2.5/test_set_norm.csv  results/BeijingPM2.5_DeepFFNN/ MASE
 
 
+# BeiJing Air Quality [24 Hour Difference Model]
+
+python ./train_bn_mcmc.py 24 0 1 0 SLP linear data/BeijingPM2.5/train_set_v2_norm.csv data/BeijingPM2.5/test_set_v2_norm.csv  results/BeijingPM2.5_v2_SLP/ MASE
+
+python ./train_bn_mcmc.py 24 7 1 0 FFNN linear data/BeijingPM2.5/train_set_v2_norm.csv data/BeijingPM2.5/test_set_v2_norm.csv  results/BeijingPM2.5_v2_FFNN/ MASE
+
+python ./train_bn_mcmc.py 24 7 1 0 LangevinFFNN linear data/BeijingPM2.5/train_set_v2_norm.csv data/BeijingPM2.5/test_set_v2_norm.csv  results/BeijingPM2.5_v2_LangevinFFNN/ MASE
 

@@ -58,7 +58,7 @@ def print_usage(args):
     print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <ARCH> <ACTIVATION> <TRAIN> <TEST> <RESULTS DIR> <EVAL METRIC> (<SEED>)")
     print("Valid model architectures: SLP FFNN DeepFFNN LangevinFFNN ")
     print("Valid output activation functions: linear sigmoid tanh relu")
-    print("Valid eval metrics: RMSE MAE MAPE MASE")
+    print("Valid eval metrics: RMSE MAE MAPE MASEa MASEb")
     print("NOTE")
     print("THE NUMBER OF COLUMNS IN THE TRAIN AND TEST DATA MUST BE EQUAL TO INPUT PLUS OUTPUT NODES.")
 

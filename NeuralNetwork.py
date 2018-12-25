@@ -11,10 +11,10 @@ class NeuralNetwork:
 
     # THESE PARAMETERS CONTROL THE RANDOM WALK
     # THE FIRST THE CHANGES TO THE NETWORK WEIGHTS
-    step_w = 0.01;
+    step_w = 0.03;
 
     # THE SECOND THE VARIATION IN THE NOISE DISTRIBUTION
-    step_eta = 0.01;
+    step_eta = 0.03;
 
     # THESE VALUES CONTROL THE INVERSE GAMMA FUNCTION
     # WHICH IS WHAT WE ASSUME TAU SQUARED IS DRAWN FROM
@@ -51,6 +51,10 @@ class NeuralNetwork:
            self.eval = self.mape
         elif eval_metric=="MASE":
            self.eval = self.mase
+        elif eval_metric=="MASEa":
+           self.eval = self.mase
+        elif eval_metric=="MASEb":
+           self.eval = self.maseb
         else :
            self.eval = self.rmse
 
@@ -113,7 +117,7 @@ class NeuralNetwork:
         return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
 
     ######################################################################
-    # Mean Absolute Scaled Error - Version a (Time Series Only)
+    # Mean Absolute Scaled Error - Version A (Time Series Only)
     # This metric make strong assumption about the test data
     # 1. That its order in the vector is the order in time
     # 2. That the appropriate naive model is the last target value 
@@ -132,9 +136,9 @@ class NeuralNetwork:
 
 
     ######################################################################
-    # Mean Absolute Scaled Error - Version b (Time Series Only)
+    # Mean Absolute Scaled Error - Version B (Time Series Only)
     # This metric make strong assumptions about the structure of the data
-    # 1. We assume that the last of the presented features is the the 
+    # 1. We assume that the last of the presented features is the 
     #    previous known value of the entity we are predicting. 
     # 2. And that this last value is the appropriate Naive mode.
     # NOTE: Adding a small value to correct for instances when

@@ -27,13 +27,17 @@ df_targs = df_t.loc[:,['No','pm2.5_target']]
 
 final_df = pd.merge(df_f, df_targs, left_on='No', right_on='No')
 
-# NOW REMOVE THE STUFF WE DON'T NEED AND SPLIT OUT TRAIN AND TEST
+final_df['target_24hr_residual'] = final_df['pm2.5_target'] - final_df['pm2.5']
+
+# NOW REMOVE ALL ROWS WHERE pm2.5 IS MISSING
+# IN EITHER TARGET OR PREVIOUS VALUE
 # final_df.isnull().sum()
 nonull_df = final_df[np.isfinite(final_df['pm2.5_target'])]
+nonull_df2 = nonull_df[np.isfinite(nonull_df['pm2.5'])]
 
 trainset = 30000
-train_df = nonull_df.loc[0:trainset,['day','hour','DEWP','TEMP','PRES','Iws','Is','Ir','N','S','E','W','pm2.5','pm2.5_target']]
-test_df = nonull_df.loc[trainset+1:,['day','hour','DEWP','TEMP','PRES','Iws','Is','Ir','N','S','E','W','pm2.5','pm2.5_target']]
+train_df = nonull_df2.loc[0:trainset,['day','hour','DEWP','TEMP','PRES','Iws','Is','Ir','N','S','E','W','pm2.5','pm2.5_target']]
+test_df = nonull_df2.loc[trainset+1:,['day','hour','DEWP','TEMP','PRES','Iws','Is','Ir','N','S','E','W','pm2.5','pm2.5_target']]
 
 # WRITE OUT THE UN-NORMALISED VERSION
 
@@ -64,6 +68,4 @@ test_df_norm.to_csv('test_set_norm.csv', sep=' ', encoding='utf-8', index=False,
 def minMaxnormalise(indf, cols_to_norm):
    rez = indf.copy()
    rez[cols_to_norm] = rez[cols_to_norm].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
-
-
 
