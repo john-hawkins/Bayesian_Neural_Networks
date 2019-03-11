@@ -1,5 +1,8 @@
-KDD CUP 98
-===================
+BeiJing PM2.5 Particulate Concentration Data
+============================================
+ 
+This data contains hourly observations of pm2.5 particulate matter concentrations from the US embassy in BeiJing.
+These are combined with various measurements of the weather conditions at the same points in time.
 
 Downloaded from [https://archive.ics.uci.edu/ml/datasets/Beijing+PM2.5+Data](https://archive.ics.uci.edu/ml/datasets/Beijing+PM2.5+Data)
 
