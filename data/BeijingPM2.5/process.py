@@ -14,7 +14,7 @@ df2.drop(["cbwd"],axis = 1, inplace = True)
 index_column = "No"
 forecast_column = "pm2.5"
 forecast_period = 24
-list_of_lags = [24,48,72]
+list_of_lags = [1,2,24,48]
 
 new_df = dg.generate_time_series_dataset( df2, index_column, forecast_column, forecast_period, list_of_lags)
 
@@ -23,19 +23,24 @@ train_df = new_df.loc[0:trainset,:]
 test_df = new_df.loc[trainset+1:,:]
 
 # ###########################################################################################################
-# WRITE OUT THE UN-NORMALISED VERSION
+# WRITE OUT THE FULL UN-NORMALISED VERSION
 # ###########################################################################################################
-train_df.to_csv('Train_set_24_hour.csv', sep=' ', encoding='utf-8', index=False, header=True)
-test_df.to_csv('Test_set_24_hour.csv', sep=' ', encoding='utf-8', index=False, header=True)
+train_df.to_csv('Train_set_24_hour_full.csv', sep=' ', encoding='utf-8', index=False, header=True)
+test_df.to_csv('Test_set_24_hour_full.csv', sep=' ', encoding='utf-8', index=False, header=True)
 
 # ###########################################################################################################
-# NORMALIZE AND WRITE TO DISK
+#  REMOVE UNWANTED COLUMNS, NORMALISE AND WRITE TO DISK
 # ###########################################################################################################
-config = nzr.create_normalization_config(train_df)
+features = train_df.columns.tolist()
+unwanted = ["No", "year", "month", "day", "TARGET_pm2.5_24_VALUE"] 
+for x in unwanted : features.remove(x)
+train_df2 = train_df.loc[:,features]
+test_df2 = test_df.loc[:,features]
 
-train_df_norm = nzr.normalize(train_df, config, ['N','S','E','W'])
-test_df_norm = nzr.normalize(test_df, config, ['N','S','E','W'])
+config = nzr.create_normalization_config(train_df2)
+train_df_norm = nzr.normalize(train_df2, config, ['N','S','E','W'])
+test_df_norm = nzr.normalize(test_df2, config, ['N','S','E','W'])
 
-train_df_norm.to_csv('Train_set_24_norm.csv', sep=' ', encoding='utf-8', index=False, header=False)
-test_df_norm.to_csv('Test_set_24_norm.csv', sep=' ', encoding='utf-8', index=False, header=False)
+train_df_norm.to_csv('Train_set_24_hour_normalised.csv', sep=' ', encoding='utf-8', index=False, header=False)
+test_df_norm.to_csv('Test_set_24_hour_normalised.csv', sep=' ', encoding='utf-8', index=False, header=False)
 

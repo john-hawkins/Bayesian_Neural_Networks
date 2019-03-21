@@ -85,7 +85,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     testdata = np.loadtxt(test_path)
 
     if architecture == 'DeepGBFFNN':
-        neuralnet = deepgbffnn.DeepGBFFNN(input, hidden, output, depth, 0.01, activation, eval_metric)
+        neuralnet = deepgbffnn.DeepGBFFNN(input, hidden, output, depth, 0.05, activation, eval_metric)
     elif architecture == 'DeepFFNN':
         neuralnet = deepffnn.DeepFFNN(input, hidden, output, depth, activation, eval_metric)
     elif architecture == 'LangevinFFNN':
