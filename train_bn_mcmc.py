@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import random
 import time
 import sys
@@ -98,16 +99,16 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     neuralnet.print()
 
     random.seed( time.time() )
-    numSamples = 50000  
-    estimator = mcmc.MCMC(numSamples, traindata, testdata, neuralnet, results_path, eval_metric)  
+    num_samples = 5000  
+    estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
     estimator.print()
-    [pos_w, pos_tau, eval_train, eval_test, accept_ratio] = estimator.sampler()
+    [pos_w, pos_tau, eval_train, eval_test, accept_ratio, test_preds_file] = estimator.sampler()
 
     print("\nTraining complete")
 
     burnin = 1000
-    # PREVIOUSLY: 0.1 * numSamples  
-    usesamples = 10000
+    # PREVIOUSLY: 0.1 * num_samples  
+    use_samples = 1000
 
     burn_x = []
     burn_y = []
@@ -115,9 +116,9 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     burnfile = results_path + "burnin.tsv"
     outburn = open(burnfile, 'w')
     outburn.write("Burnin\t" + eval_metric + "\r\n")    
-    for i in range( int((numSamples-usesamples)/burnin)):
+    for i in range( int((num_samples-use_samples)/burnin)):
         burner = (i+1)*burnin
-        endpoint = burner + usesamples
+        endpoint = burner + use_samples
         eval_temp = np.mean(eval_test[int(burner):endpoint])
         burn_x.append(burner)
         burn_y.append( eval_temp )
@@ -125,7 +126,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
 
     outburn.close()
 
-    burnin = numSamples - usesamples
+    burnin = num_samples - use_samples
 
     pos_w = pos_w[int(burnin):, ]
  
@@ -140,16 +141,18 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     outres.write("Accept Ratio\t%f\r\n" % accept_ratio)
     outres.close()
 
-    createWeightBoxPlot( pos_w, results_path )
+    create_weight_boxplot( pos_w, results_path )
+
+    create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path)
 
 
 #################################################################################
-# SOME PLOTTTING FUNCTIONs
+# PLOT CONFIDENCE INTERVAL
 #################################################################################
-def plotTimeSeriesConfidenceInterval( results_path ):
+def plot_timeseries_confidence_intervals( burnin, eval_train, eval_test, results_path ):
 
-    fx_train_final = fx_train[int(burnin):, ]
-    fx_test_final = fx_test[int(burnin):, ]
+    fx_train_final = eval_train[int(burnin):, ]
+    fx_test_final = eval_test[int(burnin):, ]
 
     fx_mu = fx_test_final.mean(axis=0)
     fx_high = np.percentile(fx_test_final, 95, axis=0)
@@ -190,7 +193,7 @@ def plotTimeSeriesConfidenceInterval( results_path ):
 #################################################################################
 # SOME PLOTTTING FUNCTION 
 #################################################################################
-def createWeightBoxPlot( pos_w, results_path ):
+def create_weight_boxplot( pos_w, results_path ):
     mpl_fig = plt.figure()
     ax = mpl_fig.add_subplot(111)
 
@@ -203,5 +206,21 @@ def createWeightBoxPlot( pos_w, results_path ):
     plt.savefig(results_path + 'w_pos.svg', format='svg', dpi=600)
     plt.clf()
 
+#################################################################################
+# TURN THE TEST PREDICTIONS INTO MEAN AND UPPER/LOWER QUANTILE BANDS 
+#################################################################################
+def create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path):
+    # OPEN THE RESULTS FILE
+    rez = np.loadtxt(test_preds_file)
+    # CULL THE BURNIN
+    tested = rez[int(burnin):, ]
+    fx_mu = tested.mean(axis=0)
+    fx_high = np.percentile(tested, 95, axis=0)
+    fx_low = np.percentile(tested, 5, axis=0)
+    y_test = testdata[:, input]
+    data = {'y':y_test, 'lq':fx_low, 'mu': fx_mu, 'hq':fx_high }
+    df = pd.DataFrame(data)
+    df.to_csv(results_path + 'testdata_prediction_intervals.csv', index=False)
 
 if __name__ == "__main__": main()
+
