@@ -41,15 +41,18 @@ Liang, X., Zou, T., Guo, B., Li, S., Zhang, H., Zhang, S., Huang, H. and Chen, S
 
 
 
-Citation Request:
-
-Liang, X., Zou, T., Guo, B., Li, S., Zhang, H., Zhang, S., Huang, H. and Chen, S. X. (2015). Assessing Beijing's PM2.5 pollution: severity, weather impact, APEC and winter heating. Proceedings of the Royal Society A, 471, 20150257.
-
-
 ### Processing
 
-The file [process.py](process.py) will process the raw data into a predictive format suitable for treating the problem as a regression task
-in which we attempt to predict the value of pm2.5 24 hours in advance.
+The file [RUN.sh](RUN.sh) will both download the data and then process it into the format reading for training.
+
+There are a series of process files that generate each of the different forecast window datasets. These are
+
+* [process_1_hour.py](process_1_hour.py)
+* [process_24_hour.py](process_24_hour.py)
+* [process_168_hour.py](process_168_hour.py)
+
+These files process the raw data into a predictive format suitable for treating the problem as a regression task
+in which we attempt to predict the value of pm2.5 particulate matter either 1, 24 or 168 hours in advance.
 
 In addition we convert the field 'cbwd' into 4 indicator variables, one for each of the wind direction componenets (N,S,E,W)
 
@@ -57,7 +60,21 @@ We remove any rows for which the target is NULL, and we use mean value imputatio
 
 We split out the first 30,000 of the remaining rows for training and test on the remaining data.
 
-We normalise all feature columns by subtracting the mean and dividing by the standard deviation of the training data
+We normalise all feature columns by subtracting the minimun value and then dividing by the different between the 
+maximum and the minimum.
+Rather that subtracting the mean and dividing by the standard deviation of the training data
 (mean and std of training is applied to normalise the test data)
+
+
+### Dependencies
+
+The processing of the data into time based features requires the Dataset_Generator library.
+You can pull the repo from here. 
+
+[https://github.com/john-hawkins/Dataset_Transformers](https://github.com/john-hawkins/Dataset_Transformers)
+
+Note that the file process files import from this library assuming that it
+is another directory found in the same root directory as this project.
+
 
 

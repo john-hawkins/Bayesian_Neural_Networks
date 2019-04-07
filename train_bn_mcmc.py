@@ -143,6 +143,8 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
 
     create_weight_boxplot( pos_w, results_path )
 
+    preds_and_actuals = 
+
     create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path)
 
 
@@ -207,7 +209,8 @@ def create_weight_boxplot( pos_w, results_path ):
     plt.clf()
 
 #################################################################################
-# TURN THE TEST PREDICTIONS INTO MEAN AND UPPER/LOWER QUANTILE BANDS 
+# TURN THE TEST PREDICTIONS INTO MEAN PREDICTION AND A RANGE OF QUANTILE BANDS
+# THEN CALCULATE SUMMARY STATISTICS ABOUT THE CALIBRATION OF THE MODEL 
 #################################################################################
 def create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path):
     # OPEN THE RESULTS FILE
@@ -215,12 +218,58 @@ def create_test_forecast_bands(burnin, input, test_preds_file, testdata, results
     # CULL THE BURNIN
     tested = rez[int(burnin):, ]
     fx_mu = tested.mean(axis=0)
-    fx_high = np.percentile(tested, 95, axis=0)
-    fx_low = np.percentile(tested, 5, axis=0)
+    fx_99 = np.percentile(tested, 99, axis=0)
+    fx_95 = np.percentile(tested, 95, axis=0)
+    fx_90 = np.percentile(tested, 90, axis=0)
+    fx_80 = np.percentile(tested, 80, axis=0)
+    fx_20 = np.percentile(tested, 20, axis=0)
+    fx_10 = np.percentile(tested, 10, axis=0)
+    fx_5 = np.percentile(tested, 5, axis=0)
+    fx_1 = np.percentile(tested, 1, axis=0)
     y_test = testdata[:, input]
-    data = {'y':y_test, 'lq':fx_low, 'mu': fx_mu, 'hq':fx_high }
+    data = {'y':y_test, 'qrt_1':fx_1, 'qrt_5':fx_5, 'qrt_10':fx_10, 'qrt_20':fx_20, 'mu': fx_mu, 
+                        'qrt_80':fx_80, 'qrt_90':fx_90, 'qrt_95':fx_95, 'qrt_99':fx_99 }
     df = pd.DataFrame(data)
     df.to_csv(results_path + 'testdata_prediction_intervals.csv', index=False)
+
+    df["in_98_window"] = np.where( (df['y']>df['qrt_1']) & (df['y']<df['qrt_99']), 1, 0 )
+    df["in_90_window"] = np.where( (df['y']>df['qrt_5']) & (df['y']<df['qrt_95']), 1, 0 )
+    df["in_80_window"] = np.where( (df['y']>df['qrt_10']) & (df['y']<df['qrt_90']), 1, 0 )
+    df["in_60_window"] = np.where( (df['y']>df['qrt_20']) & (df['y']<df['qrt_80']), 1, 0 )
+    df["window_size_98"] =  df['qrt_99'] - df['qrt_1']
+    df["window_size_90"] =  df['qrt_95'] - df['qrt_5']
+    df["window_size_80"] =  df['qrt_90'] - df['qrt_10']
+    df["window_size_60"] =  df['qrt_80'] - df['qrt_20']
+
+    df["base_error"] =  fx_mu - y_test
+    df["abs_error"] =  abs(df["base_error"])
+    
+    in_98_window = df["in_98_window"].mean()
+    in_90_window = df["in_90_window"].mean()
+    in_80_window = df["in_80_window"].mean()
+    in_60_window = df["in_60_window"].mean()
+    max_window_size_98 = df["window_size_98"].max() 
+    mean_window_size_98 = df["window_size_98"].mean() 
+    min_window_size_98 = df["window_size_98"].min() 
+
+    max_window_size_90 = df["window_size_90"].max() 
+    mean_window_size_90 = df["window_size_90"].mean() 
+    min_window_size_90 = df["window_size_90"].min() 
+    max_window_size_80 = df["window_size_80"].max() 
+    mean_window_size_80 = df["window_size_80"].mean() 
+    min_window_size_80 = df["window_size_80"].min()
+ 
+    max_window_size_60 = df["window_size_60"].max() 
+    mean_window_size_60 = df["window_size_60"].mean() 
+    min_window_size_60 = df["window_size_60"].min() 
+
+    sum_data = { 'window': [98,90,80,60],
+                 'calibration':[in_98_window,in_90_window,in_80_window,in_60_window],
+                 'min_size':[min_window_size_98,min_window_size_90,min_window_size_80,min_window_size_60],
+                 'mean_size':[mean_window_size_98,mean_window_size_90,mean_window_size_80,mean_window_size_60],
+                 'max_size':[max_window_size_98,max_window_size_90,max_window_size_80,max_window_size_60] }
+    sum_df = pd.DataFrame(sum_data)
+    sum_df.to_csv(results_path + 'testdata_calibration.csv', index=False)
 
 if __name__ == "__main__": main()
 

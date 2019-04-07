@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('train_set_v2.csv', sep=" ")
+df = pd.read_csv('Train_set_24_hour_full.csv', sep=" ")
 
 colnames = df.columns
 
@@ -16,6 +16,8 @@ print("      \\textbf{Col Name} & \\textbf{Type} & \\textbf{Missing \%} & \\text
 print("      \\hline")
 
 for name in colnames:
+    # NEED TO ESCAPE UNDERSCORES IN LATEX
+    newname = name.replace('_', '\_')
     nacount = len(df[df[name].isna()])
     napercent = round(100*nacount/records,3)
     valtype = "Char"
@@ -32,7 +34,7 @@ for name in colnames:
         themin = "-"
         themean = "-"
         themax = "-"
-    print("      ", name, "&", valtype, "&", napercent, "&", themin, "&", themean, "&", themax, "\\\\")
+    print("      ", newname, "&", valtype, "&", napercent, "&", themin, "&", themean, "&", themax, "\\\\")
 
 print("    \\end{tabular}")
 print("  \\end{center}")
