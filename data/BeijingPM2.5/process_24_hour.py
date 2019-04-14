@@ -41,7 +41,12 @@ for x in unwanted : features.remove(x)
 train_df2 = train_df.loc[:,features]
 test_df2 = test_df.loc[:,features]
 
+target_col = "TARGET_pm2.5_24_VALUE"
+
 config = nzr.create_normalization_config(train_df2)
+
+nzr.write_field_config(config, target_col, 'Target_24_nzr_config.yaml')
+
 train_df_norm = nzr.normalize(train_df2, config, ['N','S','E','W'])
 test_df_norm = nzr.normalize(test_df2, config, ['N','S','E','W'])
 
