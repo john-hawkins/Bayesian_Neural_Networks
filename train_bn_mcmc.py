@@ -67,9 +67,9 @@ def print_usage(args):
 #################################################################################
 # CREATE RESULTS DIRECTORY IF NEEDED
 #################################################################################
-def ensure_resultsdir(resultsdir):
-    print("testing for ", resultsdir)
-    directory = os.path.dirname(resultsdir)
+def ensure_resultsdir(results_dir):
+    print("testing for ", results_dir)
+    directory = os.path.abspath(results_dir)
     if not os.path.exists(directory):
         print("Does not exist... creating")
         os.makedirs(directory)
@@ -99,7 +99,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     neuralnet.print()
 
     random.seed( time.time() )
-    num_samples = 20000  
+    num_samples = 2000  
     estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
     estimator.print()
     [pos_w, pos_tau, eval_train, eval_test, accept_ratio, test_preds_file] = estimator.sampler()

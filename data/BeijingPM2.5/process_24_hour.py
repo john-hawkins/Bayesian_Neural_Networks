@@ -37,14 +37,17 @@ test_df.to_csv('Test_set_24_hour_full.csv', sep=' ', encoding='utf-8', index=Fal
 # ###########################################################################################################
 features = train_df.columns.tolist()
 unwanted = ["No", "year", "month", "day", "TARGET_pm2.5_24_DIFF"]
-for x in unwanted : features.remove(x)
+for x in unwanted : 
+    features.remove(x)
+
 train_df2 = train_df.loc[:,features]
 test_df2 = test_df.loc[:,features]
 
 target_col = "TARGET_pm2.5_24_VALUE"
 
-config = nzr.create_normalization_config(train_df2)
-
+config = nzr.create_padded_normalization_config(train_df2, 0.05)
+#config = nzr.create_normalization_config(train_df2)
+ 
 nzr.write_field_config(config, target_col, 'Target_24_nzr_config.yaml')
 
 train_df_norm = nzr.normalize(train_df2, config, ['N','S','E','W'])
@@ -52,4 +55,31 @@ test_df_norm = nzr.normalize(test_df2, config, ['N','S','E','W'])
 
 train_df_norm.to_csv('Train_set_24_hour_normalised.csv', sep=' ', encoding='utf-8', index=False, header=False)
 test_df_norm.to_csv('Test_set_24_hour_normalised.csv', sep=' ', encoding='utf-8', index=False, header=False)
+
+
+
+# ###########################################################################################################
+#  DIFFERENCED VERSION -  REMOVE UNWANTED COLUMNS, NORMALISE AND WRITE TO DISK
+# ###########################################################################################################
+features = train_df.columns.tolist()
+unwanted = ["No", "year", "month", "day", 'TARGET_pm2.5_24_VALUE' ]
+for x in unwanted : 
+    features.remove(x)
+
+train_df2 = train_df.loc[:,features]
+test_df2 = test_df.loc[:,features]
+
+target_col = "TARGET_pm2.5_24_DIFF"
+
+
+config = nzr.create_padded_normalization_config(train_df2, 0.05)
+# config = nzr.create_normalization_config(train_df2)
+ 
+nzr.write_field_config(config, target_col, 'Target_24_nzr_config_diff.yaml')
+
+train_df_norm = nzr.normalize(train_df2, config, ['N','S','E','W'])
+test_df_norm = nzr.normalize(test_df2, config, ['N','S','E','W'])
+
+train_df_norm.to_csv('Train_set_24_hour_diff.csv', sep=' ', encoding='utf-8', index=False, header=False)
+test_df_norm.to_csv('Test_set_24_hour_diff.csv', sep=' ', encoding='utf-8', index=False, header=False)
 

@@ -54,8 +54,13 @@ def main():
         nzr_config = nzr.read_normalization_config(norm_path)
 
         de_norm_preds = nzr.de_normalize_all(test_preds, nzr_config)
+ 
+        if is_differenced=='True':
+            final_preds = de_difference( test_data, de_norm_preds, ref_col, target_col )
+        else:
+            final_preds = de_norm_preds
 
-        data_with_preds = add_mean_and_quantiles( test_data, de_norm_preds, burnin )
+        data_with_preds = add_mean_and_quantiles( test_data, final_preds, burnin )
 
         # NOW WE ARE READY TO PRODUCE SUMMARY AND PLOTS
         write_prediction_intervals_file( data_with_preds, target_col, result_path )
@@ -79,6 +84,15 @@ def load_normalisation_data(nzr_path):
         lded = yaml.load(stream)
     return lded
 
+
+#################################################################################
+# DE-DIFFERENCE THE RAW PREDICTIONS
+#################################################################################
+def de_difference( data, preds, ref_col, target_col ):
+    rez = preds.copy()
+    for i in range(len(data)):
+        rez[:,i] =  data.loc[i,:][ref_col] + rez[:,i] 
+    return rez
 
 #################################################################################
 # ADDING PREDICTINGS AND QUANTILE BANDS 
@@ -180,6 +194,9 @@ def summarise_model_performance( test_data, target_name, results_path, naive_col
                }
     sum_df = pd.DataFrame(sum_data)
     sum_df.to_csv(results_path + '/testdata_performance.csv', index=False)
+
+
+
 
 
 if __name__ == "__main__": main()
