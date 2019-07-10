@@ -125,7 +125,7 @@ class MCMC:
     def write_test_entry(self, results):
         temp = ""
         for elem in results:
-            temp = temp + " " + str(elem)
+            temp = temp + str(elem) + " "
         self.test_file.write( temp + "\r\n")
         self.test_file.flush()
 
