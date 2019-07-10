@@ -7,8 +7,8 @@ import random
 import time
 import sys
 import os
+import yaml
 
-import sys
 sys.path.append('../Dataset_Transformers')
 from transform import Normalizer as nzr
 
@@ -92,6 +92,16 @@ def de_difference( data, preds, ref_col, target_col ):
     rez = preds.copy()
     for i in range(len(data)):
         rez[:,i] =  data.loc[i,:][ref_col] + rez[:,i] 
+    return rez
+
+
+#################################################################################
+# DE-PROPORTIONAL DIFFERENCE THE RAW PREDICTIONS
+#################################################################################
+def de_prop_difference( data, preds, ref_col, target_col ):
+    rez = preds.copy()
+    for i in range(len(data)):
+        rez[:,i] =  data.loc[i,:][ref_col] + ( rez[:,i]*data.loc[i,:][ref_col] )
     return rez
 
 #################################################################################
