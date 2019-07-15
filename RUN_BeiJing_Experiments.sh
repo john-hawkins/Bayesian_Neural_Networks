@@ -3,34 +3,28 @@
 
 # BeiJing Air Quality [24 Hour Difference Model]
 
-python ./train_bn_mcmc.py 21 0 1 0 SLP linear data/BeijingPM2.5/Train_set_24_hour_normalised.csv data/BeijingPM2.5/Test_set_24_hour_normalised.csv  results/BeijingPM2.5_v2_SLP/ RMSE
+python ./train_bn_mcmc.py 21 0 1 0 SLP sigmoid data/Beijing/sets/Train_24_hour_norm.csv data/Beijing/sets/Test_24_hour_norm.csv results/Beijing_SLP_Sigmoid/ RMSE
 
-python ./train_bn_mcmc.py 21 7 1 0 FFNN linear data/BeijingPM2.5/Train_set_24_hour_normalised.csv data/BeijingPM2.5/Test_set_24_hour_normalised.csv  results/BeijingPM2.5_v2_FFNN_RMSE/ RMSE
+python ./train_bn_mcmc.py 21 0 1 0 SLP sigmoid data/Beijing/sets/Train_24_hour_diff.csv data/Beijing/sets/Test_24_hour_diff.csv  results/Beijing_SLP_Sigmoid_Diff/ RMSE
 
-python ./train_bn_mcmc.py 21 7 1 0 LangevinFFNN linear data/BeijingPM2.5/Train_set_24_hour_normalised.csv data/BeijingPM2.5/Test_set_24_hour_normalised.csv  results/BeijingPM2.5_v2_LangevinFFNN/ RMSE
-
-python ./train_bn_mcmc.py 21 7 1 3 DeepFFNN linear data/BeijingPM2.5/Train_set_24_hour_normalised.csv data/BeijingPM2.5/Test_set_24_hour_normalised.csv  results/BeijingPM2.5_v2_DeepFFNN_RMSE/ RMSE
+python ./train_bn_mcmc.py 21 0 1 0 SLP sigmoid data/Beijing/sets/Train_24_hour_prop_diff.csv data/Beijing/sets/Test_24_hour_prop_diff.csv results/Beijing_SLP_Sigmoid_Prop_Diff/ RMSE
 
 
+# PROCESS THE RESULTS SO THAT THEY ARE IN THE TARGET SPACE (DEAL WITH NORMALISED OR DIFFERENCED TARGETS)
+ 
+python ./transform_test_results.py "./results/Beijing_SLP_Sigmoid/test_predictions_final.tsv" "./results/Beijing_SLP_Sigmoid/test_predictions.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" "data/Beijing/sets/Target_24_nzr_config_diff.yaml" True False False False "TARGET_pm2.5_24_DIFF" "pm2.5" 
+
+python analyse_test_results.py "./results/Beijing_SLP_Sigmoid" "./results/Beijing_SLP_Sigmoid/test_predictions_final.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" 500 "TARGET_pm2.5_24_VALUE" "pm2.5"
 
 
-python ./train_bn_mcmc.py 21 0 1 0 SLP sigmoid data/BeijingPM2.5/Train_set_24_hour_diff.csv data/BeijingPM2.5/Test_set_24_hour_diff.csv  results/BeijingPM2.5_SLP_Sigmoid_Diff/ RMSE
+python ./transform_test_results.py "./results/Beijing_SLP_Sigmoid_Diff/test_predictions_final.tsv" "./results/Beijing_SLP_Sigmoid_Diff/test_predictions.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" "data/Beijing/sets/Target_24_nzr_config_diff.yaml" True True False False "TARGET_pm2.5_24_DIFF" "pm2.5" 
+
+python analyse_test_results.py "./results/Beijing_SLP_Sigmoid_Diff" "./results/Beijing_SLP_Sigmoid_Diff/test_predictions_final.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" 500 "TARGET_pm2.5_24_DIFF" "pm2.5"
+
+
+python ./transform_test_results.py "./results/Beijing_SLP_Sigmoid_Prop_Diff/test_predictions_final.tsv" "./results/Beijing_SLP_Sigmoid_Prop_Diff/test_predictions.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" "data/Beijing/sets/Target_24_nzr_config_diff.yaml" True True True False "TARGET_pm2.5_24_PROP_DIFF" "pm2.5" 
+
+python analyse_test_results.py "./results/Beijing_SLP_Sigmoid_Prop_Diff" "./results/Beijing_SLP_Sigmoid_Prop_Diff/test_predictions_final.tsv" "./data/Beijing/sets/Test_24_hour_full.csv" 500 "TARGET_pm2.5_24_PROP_DIFF" "pm2.5"
 
 
 
-# ANALYSE THE RESULTS, GENERATE PLOTS AND TABLES
-
-python analyse_test_results.py "./results/BeijingPM2.5_v2_SLP" "./results/BeijingPM2.5_v2_SLP/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config.yaml" 500 False TARGET_pm2.5_24_VALUE  pm2.5
-
-python analyse_test_results.py "./results/BeijingPM2.5_v2_SLP_DIFF" "./results/BeijingPM2.5_v2_SLP_DIFF/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config_diff.yaml" 500 True TARGET_pm2.5_24_DIFF  pm2.5
-
-python analyse_test_results.py "./results/BeijingPM2.5_SLP_Sigmoid_Diff" "./results/BeijingPM2.5_SLP_Sigmoid_Diff/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config_diff.yaml" 500 True TARGET_pm2.5_24_DIFF  pm2.5
-
-
-
-
-python analyse_test_results.py "./results/BeijingPM2.5_v2_FFNN" "./results/BeijingPM2.5_v2_FFNN/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config.yaml" 500 False TARGET_pm2.5_24_VALUE pm2.5
-
-python analyse_test_results.py "./results/BeijingPM2.5_v2_DeepFFNN_RMSE" "./results/BeijingPM2.5_v2_DeepFFNN_RMSE/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config.yaml" 500 False TARGET_pm2.5_24_VALUE pm2.5
-
-python analyse_test_results.py "./results/BeijingPM2.5_v2_LangevinFFNN" "./results/BeijingPM2.5_v2_LangevinFFNN/test_predictions.tsv" "./data/BeijingPM2.5/Test_set_24_hour_full.csv" "data/BeijingPM2.5/Target_24_nzr_config.yaml" 500 False TARGET_pm2.5_24_VALUE pm2.5

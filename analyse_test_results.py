@@ -24,18 +24,14 @@ from transform import Normalizer as nzr
 # PARAMETERS
 # - PATH TO RESULTS: DIRECTORY IN WHICH TO WRITE RESULTS
 # - PATH TO TEST RESULT: THE PREDICTIONS MADE ON THE TEST DATA
-# - PATH TO TESTING DATA: PATH TO THE ORIGINAL UN-NORMALISED DATA
-# - PATH TO DE-NORMALISATION FILE: FILE CONTAINING PARAMTERS TO DE-NORMALISE
+# - PATH TO TESTING DATA: PATH TO THE ORIGINAL UN-NORMALISED TEST DATA
 # - BURNIN: INTEGER
-# - IS_DIFFERENCED: BOOLEAN
 # - TARGET_COL_NAME: COLUMN NAME OF FOR PREDICTION TARGET
-# - NAIVE_COL_NAME: FOR USE IF DIFFERENCING HAS BEEN APPLIED AND CALCULATING MASE
-#
-# TODO: Implement handling of differenced targets.
+# - NAIVE_COL_NAME: CALCULATING MASE
 #
 #################################################################################
 def main():
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 6:
         print("ERROR: MISSING ARGUMENTS")
         print_usage(sys.argv)
         exit(1)
@@ -43,24 +39,15 @@ def main():
         result_path = sys.argv[1]
         result_file_path = sys.argv[2]
         test_data_path = sys.argv[3]
-        norm_path = sys.argv[4]
-        burnin = sys.argv[5]
-        is_differenced = sys.argv[6]
-        target_col = sys.argv[7]
-        ref_col = sys.argv[8]
+        burnin = sys.argv[4]
+        target_col = sys.argv[5]
+        ref_col = sys.argv[6]
         
-        test_data = pd.read_csv(test_data_path, sep=" ")
+        test_data = pd.read_csv(test_data_path, sep=",")
         test_preds = np.loadtxt(result_file_path)
-        nzr_config = nzr.read_normalization_config(norm_path)
+        print( test_preds.shape )
 
-        de_norm_preds = nzr.de_normalize_all(test_preds, nzr_config)
- 
-        if is_differenced=='True':
-            final_preds = de_difference( test_data, de_norm_preds, ref_col, target_col )
-        else:
-            final_preds = de_norm_preds
-
-        data_with_preds = add_mean_and_quantiles( test_data, final_preds, burnin )
+        data_with_preds = add_mean_and_quantiles( test_data, test_preds, burnin )
 
         # NOW WE ARE READY TO PRODUCE SUMMARY AND PLOTS
         write_prediction_intervals_file( data_with_preds, target_col, result_path )
@@ -73,36 +60,9 @@ def main():
 #################################################################################
 def print_usage(args):
     print("USAGE ")
-    print(args[0], "<RESULTS DIR> <RESULTS FILE> <TEST DATA PATH> <DE NORM FILE> <BURNIN> <IS DIFFERENCED> <TARGET COL> <NAIVE COL>")
+    print(args[0], "<RESULTS DIR> <RESULTS FILE> <TEST DATA PATH> <BURNIN> <TARGET COL> <NAIVE COL>")
 
 
-#################################################################################
-# OPEN THE NORMALISATION CONFIG FILE
-#################################################################################
-def load_normalisation_data(nzr_path):
-    with open(nzr_path, 'r') as stream:
-        lded = yaml.load(stream)
-    return lded
-
-
-#################################################################################
-# DE-DIFFERENCE THE RAW PREDICTIONS
-#################################################################################
-def de_difference( data, preds, ref_col, target_col ):
-    rez = preds.copy()
-    for i in range(len(data)):
-        rez[:,i] =  data.loc[i,:][ref_col] + rez[:,i] 
-    return rez
-
-
-#################################################################################
-# DE-PROPORTIONAL DIFFERENCE THE RAW PREDICTIONS
-#################################################################################
-def de_prop_difference( data, preds, ref_col, target_col ):
-    rez = preds.copy()
-    for i in range(len(data)):
-        rez[:,i] =  data.loc[i,:][ref_col] + ( rez[:,i]*data.loc[i,:][ref_col] )
-    return rez
 
 #################################################################################
 # ADDING PREDICTINGS AND QUANTILE BANDS 

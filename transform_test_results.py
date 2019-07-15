@@ -87,9 +87,12 @@ def load_normalisation_data(nzr_path):
 # DE-DIFFERENCE THE RAW PREDICTIONS
 #################################################################################
 def de_difference( data, preds, ref_col, target_col ):
+    print("De-Differencing from  ", target_col, " using ", ref_col)
     rez = preds.copy()
+    print( "rez", len(rez))
+    print( "data", len(data))
     for i in range(len(data)):
-        rez[i,:] =  data.iloc[i,:][ref_col] + rez[i,:]
+        rez[:,i] =  data.iloc[i,:][ref_col] + rez[:,i]
     return rez
 
 
@@ -99,9 +102,9 @@ def de_difference( data, preds, ref_col, target_col ):
 def de_prop_difference( data, preds, ref_col, target_col, apply_rounding ):
     rez = preds.copy()
     for i in range( len(data) ):
-        rez[i,:] = data.iloc[i,:][ref_col] + ( rez[i,:] * data.iloc[i,:][ref_col] )
+        rez[:,i] = data.iloc[i,:][ref_col] + ( rez[:,i] * data.iloc[i,:][ref_col] )
         if apply_rounding=='True':
-            rez[i,:] =  np.around( rez[i,:] )
+            rez[:,i] =  np.around( rez[:,i] )
     return rez
 
 
@@ -110,7 +113,7 @@ def de_prop_difference( data, preds, ref_col, target_col, apply_rounding ):
 #################################################################################
 def write_results( dataset, results_path ) :
     df = pd.DataFrame(dataset)
-    df.to_csv(results_path, index=False, header=False)
+    df.to_csv(results_path, sep=" ", index=False, header=False)
 
 
 if __name__ == "__main__": main()

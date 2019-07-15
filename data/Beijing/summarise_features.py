@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('Train_set_24_hour_full.csv', sep=" ")
+df = pd.read_csv('sets/Train_set_24_hour_full.csv', sep=" ")
 
 colnames = df.columns
 
