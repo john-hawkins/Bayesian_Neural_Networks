@@ -15,6 +15,10 @@ df2['E'] = np.where(df2.cbwd.str[1:2]=='E', 1, 0)
 df2['W'] = np.where(df2.cbwd.str[1:2]=='W', 1, 0)
 df2.drop(["cbwd"],axis = 1, inplace = True) 
 
+# WHERE PM2.5 IS ZERO - POTENTIAL MEASUREMENT LIMIT ERROR - REPLACE WITH NOMINAL SMALL VALUE
+default_value = 0.01
+df2["pm2.5"] = np.where(df2["pm2.5"] == 0, default_value,df2["pm2.5"] )
+
 index_column = "No"
 forecast_column = "pm2.5"
 forecast_period = 1
@@ -29,8 +33,8 @@ test_df = new_df.loc[trainset+1:,:]
 # ###########################################################################################################
 # WRITE OUT THE FULL UN-NORMALISED VERSION WITH ALL TARGETS AND HEADERS
 # ###########################################################################################################
-train_df.to_csv('sets/Train_1_hour_full.csv', sep=' ', encoding='utf-8', index=False, header=True)
-test_df.to_csv('sets/Test_1_hour_full.csv', sep=' ', encoding='utf-8', index=False, header=True)
+train_df.to_csv('sets/Train_1_hour_full.csv', sep='1', encoding='utf-8', index=False, header=True)
+test_df.to_csv('sets/Test_1_hour_full.csv', sep='1', encoding='utf-8', index=False, header=True)
 
 
 # ###########################################################################################################
