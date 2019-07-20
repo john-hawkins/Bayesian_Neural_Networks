@@ -97,8 +97,8 @@ class SLP(NeuralNetwork):
         self.decode(w)  
         fx = self.process_data(data)
         y = data[:, self.input]
-        #rmse = self.rmse(fx, y)
-        metric = self.eval(fx, y)
+        feats =  data[:, :self.input]
+        metric = self.eval(fx, y, feats)
         return [fx, metric]
 
     ######################################################################

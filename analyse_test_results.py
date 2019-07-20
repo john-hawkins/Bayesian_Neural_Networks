@@ -30,6 +30,7 @@ from transform import Normalizer as nzr
 # - NAIVE_COL_NAME: CALCULATING MASE
 #
 #################################################################################
+
 def main():
     if len(sys.argv) < 6:
         print("ERROR: MISSING ARGUMENTS")
@@ -144,23 +145,23 @@ def summarise_model_calibration( test_data, target_name, results_path ):
 
 
 #################################################################################
-#  CALCULATE PERFORMANCE STATISTICS ABOUT THE MODEL
+#  CALCULATE PERFORMANCE STATISTICS OF THE MODEL
 #################################################################################
 def summarise_model_performance( test_data, target_name, results_path, naive_col='' ):
     df = test_data.copy()
     df["base_error"] =  df['mu'] - df[target_name]
-    df["nominal_target"] = np.where(df[target_name]==0,0.000001,df[target_name])
+    df["nominal_target"] = np.where(df[target_name]==0, 0.000001, df[target_name])
     df["abs_percent_error"] = abs(100*df["base_error"]/df["nominal_target"])
     df["abs_error"] =  abs(df["base_error"])
     df["naive_error"] =  df[naive_col] - df[target_name]
-    df["nominal_naive_error"] = np.where(df['naive_error']==0,0.000001,df['naive_error'])
-    df["abs_scaled_error"] = abs( df["base_error"] / df["nominal_naive_error"] )
-    df["abs_naive_error"] =  abs( df["nominal_naive_error"] )
+    df["abs_naive_error"] =  abs( df["naive_error"] )
+    df["abs_percent_error_naive"] = abs(100*df["naive_error"]/df["nominal_target"])
     sum_data = {
-                 'MAE': [df["abs_error"].mean() ],
-                 'MAPE': [df["abs_percent_error"].mean() ],
-                 'MASE': [df["abs_scaled_error"].mean() ],
-                 'MAE Naive': [df["abs_naive_error"].mean() ]
+                 'MAE': [ df["abs_error"].mean() ],
+                 'MAPE': [ df["abs_percent_error"].mean() ],
+                 'MASE': [ df["abs_error"].sum() / df["abs_naive_error"].sum() ],
+                 'MAE Naive': [ df["abs_naive_error"].mean() ],
+                 'MAPE Naive': [ df["abs_percent_error_naive"].mean() ]
                }
     sum_df = pd.DataFrame(sum_data)
     sum_df.to_csv(results_path + '/testdata_performance.csv', index=False)

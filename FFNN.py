@@ -106,12 +106,13 @@ class FFNN(NeuralNetwork):
     # THEN PASS THE SET OF DATA THROUGH, COLLECTING THE OUTPUT FROM EACH
     # OF THE BOOSTED LAYERS, AND THE FINAL OUTPUT
     ######################################################################
-    def evaluate_proposal(self, data, w): 
-        self.decode(w)  
+    def evaluate_proposal(self, data, w):
+        self.decode(w)
         fx = self.process_data(data)
         y = data[:, self.input]
-        rmse = self.rmse(fx, y)
-        return [fx, rmse]
+        feats =  data[:, :self.input]
+        metric = self.eval(fx, y, feats)
+        return [fx, metric]
 
     ######################################################################
     # LOG LIKELIHOOD

@@ -92,26 +92,26 @@ class NeuralNetwork:
     ######################################################################
     # RMSE - Root Mean Squared Error
     ######################################################################
-    def rmse(self, predictions, targets):
+    def rmse(self, predictions, targets, features):
         return np.sqrt(((predictions - targets) ** 2).mean())
 
     ######################################################################
     # Mean Absolute Error
     ######################################################################
-    def mae(self, predictions, targets):
+    def mae(self, predictions, targets, features):
         return (np.abs(predictions - targets)).mean()
 
     ######################################################################
     # Mean Absolute Percentage Error (with correction for zero target) 
     ######################################################################
-    def mape(self, predictions, targets):
+    def mape(self, predictions, targets, features):
         return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
 
     ######################################################################
     # AUC - Area Under the Curve (Binary Classification Only)
     # TODO: Implement
     ######################################################################
-    def auc(self, predictions, targets):
+    def auc(self, predictions, targets, features):
         #joined = 
         #sorted = 
         return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
@@ -126,7 +126,7 @@ class NeuralNetwork:
     # NOTE: Adding a small value to correct for instances when 
     #       the base error is zero 
     ######################################################################
-    def mase(self, predictions, targets):
+    def mase(self, predictions, targets, features):
         naive_preds = targets[0:len(targets)-1]
         final_targs = targets[1:len(targets)]
         model_preds = predictions[1:len(predictions)]
@@ -147,15 +147,13 @@ class NeuralNetwork:
     # TODO: In order to use this we need to change all definitions and calls
     #       of the eval function so that the features are also passed through
     ############################################################################
-    def maseb(self, features, predictions, targets):
-        naive_preds = features[len(features),:]
+    def maseb(self, predictions, targets, features):
+        naive_preds = features[:, features.shape[1]-1 ]
         final_targs = targets
         model_preds = predictions
         base_error = np.abs(naive_preds - final_targs) + 0.0000001
         model_error = np.abs(model_preds - final_targs)
-        return (model_error/base_error).mean()
-
-
+        return (model_error.sum()/base_error.sum())
 
 
     ######################################################################

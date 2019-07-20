@@ -99,7 +99,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     neuralnet.print()
 
     random.seed( time.time() )
-    num_samples = 10000  
+    num_samples = 20000  
     estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
     estimator.print()
     [pos_w, pos_tau, eval_train, eval_test, accept_ratio, test_preds_file] = estimator.sampler()
