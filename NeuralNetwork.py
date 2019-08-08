@@ -116,44 +116,40 @@ class NeuralNetwork:
         #sorted = 
         return (np.abs(predictions - targets)/(targets+0.0000001)).mean()
 
-    ######################################################################
-    # Mean Absolute Scaled Error - Version A (Time Series Only)
-    # This metric make strong assumption about the test data
-    # 1. That its order in the vector is the order in time
-    # 2. That the appropriate naive model is the last target value 
-    #    preceding the current row 
-    #    (in other words we are predicting one time step in advance)
-    # NOTE: Adding a small value to correct for instances when 
-    #       the base error is zero 
-    ######################################################################
-    def mase(self, predictions, targets, features):
-        naive_preds = targets[0:len(targets)-1]
-        final_targs = targets[1:len(targets)]
-        model_preds = predictions[1:len(predictions)]
-        base_error = np.abs(naive_preds - final_targs) + 0.0000001
-        model_error = np.abs(model_preds - final_targs)
-        return (model_error/base_error).mean()
-
 
     ######################################################################
-    # Mean Absolute Scaled Error - Version B (Time Series Only)
+    # Mean Absolute Scaled Error
     # This metric make strong assumptions about the structure of the data
     # 1. We assume that the last of the presented features is the 
-    #    previous known value of the entity we are predicting. 
-    # 2. And that this last value is the appropriate Naive mode.
+    #    NAIVE prediction. This could be the previous known value of 
+    #    the entity we are predicting, or the SEASONAL NAIVE VALUE
+    #    Either way it is up to you to prepare the data this way.
     # NOTE: Adding a small value to correct for instances when
     #       the base error is zero
-    #
-    # TODO: In order to use this we need to change all definitions and calls
-    #       of the eval function so that the features are also passed through
     ############################################################################
-    def maseb(self, predictions, targets, features):
+    def mase(self, predictions, targets, features):
         naive_preds = features[:, features.shape[1]-1 ]
-        final_targs = targets
-        model_preds = predictions
-        base_error = np.abs(naive_preds - final_targs) + 0.0000001
-        model_error = np.abs(model_preds - final_targs)
-        return (model_error.sum()/base_error.sum())
+        naive_error = np.abs(naive_preds - targets)
+        model_error = np.abs(predictions - targets)
+        return model_error.sum() / ( naive_error.sum() + 0.0000001 )
+
+    ######################################################################
+    # Mean Absolute Scaled Error - (Time Series Only) Second Version
+    # This metric make strong assumption about the test data
+    # 1. That its order in the vector is the order in time
+    # 2. That the appropriate naive model is the last target value
+    #    preceding the current row
+    #    (in other words we are predicting one time step in advance)
+    # NOTE: Adding a small value to correct for instances when
+    #       the naive error is zero
+    ######################################################################
+    def mase_version2(self, predictions, targets, features):
+        naive_preds = targets[0:len(targets)-1]
+        naive_targs = targets[1:len(targets)]
+        naive_error = np.abs(naive_preds - naive_targs)
+        model_error = np.abs(predictions - targets)
+        factor = len(targets) / (len(targets) - 1)
+        return model_error.sum() / (factor * naive_error.sum() + 0.000001)
 
 
     ######################################################################
