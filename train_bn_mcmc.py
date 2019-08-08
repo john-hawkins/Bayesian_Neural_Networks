@@ -27,10 +27,12 @@ import DeepGBFFNN as deepgbffnn
 # - PATH TO TESTING DATA
 # - PATH TO RESULTS
 # - EVAL METRIC
+# - EPOCHS
 # - SEED (OPTIONAL)
 #################################################################################
 def main():
-    if len(sys.argv) < 11:
+    print("length: ", len(sys.argv) )
+    if len(sys.argv) < 12:
         print("ERROR: MISSING ARGUMENTS")
         print_usage(sys.argv)
         exit(1)
@@ -45,21 +47,22 @@ def main():
         test_path = sys.argv[8]
         results_path = sys.argv[9]
         eval_metric = sys.argv[10]
-        if len(sys.argv) > 11:
-            rand_seed = sys.argv[11]
+        epochs = int(sys.argv[11])
+        if len(sys.argv) > 12:
+            rand_seed = sys.argv[12]
         else:
             rand_seed = 0
         np.random.seed(rand_seed)
 
-        train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path, eval_metric)
+        train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path, eval_metric, epochs)
 
 #################################################################################
 def print_usage(args):
     print("USAGE ")
-    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <ARCH> <ACTIVATION> <TRAIN> <TEST> <RESULTS DIR> <EVAL METRIC> (<SEED>)")
+    print(args[0], "<INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <ARCH> <ACTIVATION> <TRAIN> <TEST> <RESULTS DIR> <EVAL METRIC> <EPOCHS> (<SEED>)")
     print("Valid model architectures: SLP FFNN DeepFFNN LangevinFFNN ")
     print("Valid output activation functions: linear sigmoid tanh relu")
-    print("Valid eval metrics: RMSE MAE MAPE MASEa MASEb")
+    print("Valid eval metrics: RMSE MAE MAPE MASE MASEb")
     print("NOTE")
     print("THE NUMBER OF COLUMNS IN THE TRAIN AND TEST DATA MUST BE EQUAL TO INPUT PLUS OUTPUT NODES.")
 
@@ -78,7 +81,7 @@ def ensure_resultsdir(results_dir):
 #################################################################################
 # TRAIN THE MODELS
 #################################################################################
-def train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path, eval_metric):
+def train_model(input, hidden, output, depth, architecture, activation, train_path, test_path, results_path, eval_metric, epochs):
     ensure_resultsdir(results_path)
     rezfile = results_path + "results.txt"
     outres = open(rezfile, 'w')
@@ -99,16 +102,16 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     neuralnet.print()
 
     random.seed( time.time() )
-    num_samples = 20000  
+    num_samples = epochs
+
     estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
     estimator.print()
     [pos_w, pos_tau, eval_train, eval_test, accept_ratio, test_preds_file] = estimator.sampler()
 
     print("\nTraining complete")
 
-    burnin = 1000
-    # PREVIOUSLY: 0.1 * num_samples  
-    use_samples = 1000
+    burnin = int(0.1 * num_samples)  
+    use_samples = burnin
 
     burn_x = []
     burn_y = []
