@@ -9,15 +9,11 @@ and variations on the MCMC sampling procedure.
 
 # Usage
 
-The [RUN.sh Script](Run.sh) gives examples of how to execute several network architectures on a
-range of datasets.
+The [experiments](experiments) folder contains a bunch of examples of how to train and evaluate models on several
+datasets. Note that you will need to acquire the raw data and run the processing if you want to change the nature 
+of those datasets.
 
-This script will execute the python command line program [train_bn_mcmc.py](train_bn_mcmc.py)
-Which should be executed as follows
-
-```
-python train_bn_mcmc.py <INPUT NODES> <HIDDEN NODES> <OUTPUT NODES> <DEPTH> <MODEL> <OUTPUT ACTIVATION> <TRAIN> <TEST> <RESULTS> (OPTIONAL:<RANDOM SEED>)
-```
+These scripts will execute the python command line program [train_bn_mcmc.py](train_bn_mcmc.py)
 
 It expects to be given a training and testing data set, and it expects the data to be a CSV file
 in which the first  <INPUT NODES> number of columns are the numerical input features for the model.

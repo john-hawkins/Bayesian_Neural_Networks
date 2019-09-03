@@ -65,30 +65,40 @@ expanded.columns = new_names
 
 expanded.to_csv( 'delhi_pm10_stations_ALL_2011_2015.csv', header=True, index=False )
 
+
+# ##########################################################################
 # EXTRACT OUT THE INDIVIDUAL SERIES IN THE DATA AND SAVE
 
-stations = df['Stn Code'].unique()
+ 
+# REMOVING
+#stations = df['Stn Code'].unique()
+#for stat in stations:
+#    temp = expanded[ expanded['Stn Code']==stat ]
+#    filename = 'delhi_pm10_station_%s_2011_2015.csv' % str(stat)
+#    temp.to_csv(filename, header=True, index=False)
 
-for stat in stations:
-    temp = expanded[ expanded['Stn Code']==stat ]
-    filename = 'delhi_pm10_station_%s_2011_2015.csv' % str(stat)
-    temp.to_csv(filename, header=True, index=False)
-
-
-# FINALLY BUILD ONE DATASET WITH EACH OF THE PM10 STATION READINGS AS FEATURES
+# #############################################################################
+# BUILD ONE DATASET WITH EACH OF THE PM10 STATION READINGS AS FEATURES
+# ONLY USING A SUBSET OF STATIONS AS THE OTHERS ARE MISSING SEVERAL YEARS
+################################################################################
+good_stations = [144, 146, 345]
 base = pd.DataFrame()
-for stat in stations:
+for stat in good_stations:
     if len(base) == 0 :
         temp = expanded[ expanded['Stn Code']==stat ]
-        temp2 = temp.loc[:,['Date','PM10']]
-        col_name = 'STN_%s_PM10' % str(stat)
-        temp2.columns = ['Date', col_name]
+        temp2 = temp.loc[:,['Date','PM10', 'SO2', 'NO2']]
+        col1_name = 'STN_%s_PM10' % str(stat)
+        col2_name = 'STN_%s_SO2' % str(stat)
+        col3_name = 'STN_%s_NO2' % str(stat)
+        temp2.columns = ['Date', col1_name, col2_name, col3_name]
         base = temp2
     else :
         temp = expanded[ expanded['Stn Code']==stat ]
-        temp2 = temp.loc[:,['Date','PM10']]
-        col_name = 'STN_%s_PM10' % str(stat)
-        temp2.columns = ['Date', col_name]
+        temp2 = temp.loc[:,['Date','PM10', 'SO2', 'NO2']]
+        col1_name = 'STN_%s_PM10' % str(stat)
+        col2_name = 'STN_%s_SO2' % str(stat)
+        col3_name = 'STN_%s_NO2' % str(stat)
+        temp2.columns = ['Date', col1_name, col2_name, col3_name]
         new_df = pd.merge(base, temp2,  how='left', left_on=['Date'], right_on = ['Date'])
         base = new_df    
 
