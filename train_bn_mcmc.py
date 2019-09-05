@@ -2,7 +2,7 @@
 import sys
 sys.path.append('src')
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
@@ -14,7 +14,7 @@ import FFNN as ffnn
 import LangevinFFNN as lgvnffnn
 import MCMC as mcmc
 import DeepFFNN as deepffnn
-import DeepGBFFNN as deepgbffnn
+#import DeepGBFFNN as deepgbffnn
 
 #################################################################################
 # TRAIN A BAYESIAN NEURAL NETWORK 
@@ -146,7 +146,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     outres.write("Accept Ratio\t%f\r\n" % accept_ratio)
     outres.close()
 
-    create_weight_boxplot( pos_w, results_path )
+    #create_weight_boxplot( pos_w, results_path )
 
     create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path)
 
