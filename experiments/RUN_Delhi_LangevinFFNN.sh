@@ -11,6 +11,3 @@ python ./transform_test_results.py "./results/Delhi_144_LvnFFNN_Sigmoid/test_pre
 python analyse_test_results.py "./results/Delhi_144_LvnFFNN_Sigmoid" "./results/Delhi_144_LvnFFNN_Sigmoid/test_predictions_final.tsv" "./data/Delhi/STN_144/test.csv" 50000 "TARGET_STN_144_PM10_7_VALUE" "STN_144_PM10"
 
 
-
-
-
