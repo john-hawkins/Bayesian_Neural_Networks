@@ -106,11 +106,14 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     random.seed( time.time() )
     num_samples = epochs
 
+
+    start_time = time.time()
+
     estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
     estimator.print()
     [pos_w, pos_tau, eval_train, eval_test, accept_ratio, test_preds_file] = estimator.sampler()
-
-    print("\nTraining complete")
+    print("\nMCMC Training Complete")
+    print("- Execution Time: %.2f seconds " % (time.time() - start_time))
 
     burnin = int(0.1 * num_samples)  
     use_samples = burnin
