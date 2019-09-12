@@ -61,8 +61,7 @@ We remove any rows for which the target is NULL, and we use mean value imputatio
 We split out the first 30,000 of the remaining rows for training and test on the remaining data.
 
 We normalise all feature columns by subtracting the minimun value and then dividing by the different between the 
-maximum and the minimum.
-Rather that subtracting the mean and dividing by the standard deviation of the training data
+maximum and the minimum. Rather that subtracting the mean and dividing by the standard deviation of the training data
 (mean and std of training is applied to normalise the test data)
 
 
