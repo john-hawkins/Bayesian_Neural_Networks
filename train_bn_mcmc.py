@@ -106,7 +106,6 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     random.seed( time.time() )
     num_samples = epochs
 
-
     start_time = time.time()
 
     estimator = mcmc.MCMC(num_samples, traindata, testdata, neuralnet, results_path, eval_metric)  
@@ -149,6 +148,7 @@ def train_model(input, hidden, output, depth, architecture, activation, train_pa
     outres.write("Accept Ratio\t%f\r\n" % accept_ratio)
     outres.close()
 
+    write_weights( pos_w, results_path )
     #create_weight_boxplot( pos_w, results_path )
 
     create_test_forecast_bands(burnin, input, test_preds_file, testdata, results_path)
@@ -196,6 +196,12 @@ def plot_timeseries_confidence_intervals( burnin, eval_train, eval_test, results
     plt.savefig(results_path + 'mcmcrestrain.png')
     plt.savefig(results_path + 'mcmcrestrain.svg', format='svg', dpi=600)
     plt.clf()
+
+#################################################################################
+# WRITE OUT THE WEIGHTS 
+#################################################################################
+def write_weights( pos_w, results_path ):
+    np.savetxt( results_path + 'weights.csv', pos_w, delimiter=',')
 
 
 #################################################################################
